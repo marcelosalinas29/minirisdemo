@@ -1,0 +1,1 @@
+CLUSTER public.appointments USING appointments_pkey;

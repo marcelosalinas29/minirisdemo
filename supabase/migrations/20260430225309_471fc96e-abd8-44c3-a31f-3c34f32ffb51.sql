@@ -1,0 +1,1 @@
+UPDATE appointments SET images = '[]'::jsonb WHERE date = '2026-03-18' AND time IN ('09:10','09:20','09:30','17:00','17:35') AND array_length(image_urls,1) > 0;

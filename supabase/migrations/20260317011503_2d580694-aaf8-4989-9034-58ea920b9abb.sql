@@ -1,0 +1,1 @@
+ALTER TABLE public.appointments ADD COLUMN asistio boolean NOT NULL DEFAULT false;

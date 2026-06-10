@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 20% 98%;
+    --foreground: 215 30% 12%;
+
+    --action-primary: 224 76% 53%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 215 30% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 215 30% 12%;
+
+    --primary: 215 55% 28%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 210 20% 93%;
+    --secondary-foreground: 215 30% 12%;
+
+    --muted: 210 12% 94%;
+    --muted-foreground: 215 10% 46%;
+
+    --accent: 195 60% 38%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 214 18% 86%;
+    --input: 214 18% 86%;
+    --ring: 215 55% 28%;
+
+    --radius: 0.75rem;
+
+    --status-pending: 40 90% 50%;
+    --status-in-study: 215 55% 28%;
+    --status-reported: 195 60% 38%;
+    --status-sent: 152 60% 40%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  }
+}
+
+@layer utilities {
+  .status-badge-pending {
+    @apply bg-amber-50 text-amber-700 border-amber-200;
+  }
+  .status-badge-in-study {
+    @apply bg-blue-50 text-blue-800 border-blue-200;
+  }
+  .status-badge-reported {
+    @apply bg-cyan-50 text-cyan-800 border-cyan-200;
+  }
+  .status-badge-sent {
+    @apply bg-emerald-50 text-emerald-700 border-emerald-200;
+  }
+  .btn-whatsapp {
+    @apply bg-emerald-600 hover:bg-emerald-700 text-white;
+  }
+  .btn-action-primary {
+    background-color: hsl(var(--action-primary));
+    color: white;
+  }
+  .btn-action-primary:hover {
+    background-color: hsl(var(--action-primary) / 0.9);
+  }
+  .card-elevated {
+    @apply bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow;
+  }
+}
+
+/* Report editor — scoped styles to match PDF output (line-height 1.6, paragraph spacing) */
+.ProseMirror {
+  font-family: 'Helvetica', 'Arial', sans-serif;
+  line-height: 1.6;
+}
+.ProseMirror p,
+.ProseMirror ul,
+.ProseMirror ol {
+  margin-bottom: 1.2em;
+  line-height: 1.6;
+}
+.ProseMirror p:last-child,
+.ProseMirror ul:last-child,
+.ProseMirror ol:last-child {
+  margin-bottom: 0;
+}
