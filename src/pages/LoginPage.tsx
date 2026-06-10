@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -7,7 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import clinicLogo from '@/assets/clinic-logo.png';
-import { Stethoscope, ClipboardList, Eye, Sparkles } from 'lucide-react';
+import { Stethoscope, ClipboardList, Eye, Sparkles, Lock } from 'lucide-react';
+
+// 🔒 Contraseña del evento — cambiala antes de cada presentación
+const EVENT_PASSWORD = 'RECONQUISTA2026';
+const EVENT_UNLOCK_KEY = 'demo_event_unlocked';
 
 const DEMO_ACCOUNTS = [
   { email: 'secretaria@demo.com', password: 'demo1234', label: 'Secretaria', icon: ClipboardList, desc: 'Gestiona citas y pacientes' },
@@ -21,8 +25,25 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [seeding, setSeeding] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
+  const [eventPw, setEventPw] = useState('');
+
+  useEffect(() => {
+    if (sessionStorage.getItem(EVENT_UNLOCK_KEY) === '1') setUnlocked(true);
+  }, []);
 
   if (!loading && session) return <Navigate to="/" replace />;
+
+  const tryUnlock = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (eventPw.trim().toUpperCase() === EVENT_PASSWORD) {
+      sessionStorage.setItem(EVENT_UNLOCK_KEY, '1');
+      setUnlocked(true);
+      toast.success('Acceso demo desbloqueado');
+    } else {
+      toast.error('Clave de evento incorrecta');
+    }
+  };
 
   const signIn = async (mail: string, pass: string) => {
     setSubmitting(true);
