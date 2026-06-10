@@ -82,32 +82,52 @@ const LoginPage = () => {
           </div>
         </div>
 
-        {/* Quick access demo buttons */}
-        <div className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-3">
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Sparkles className="w-4 h-4 text-primary" />
-            Acceso rápido demo
+        {/* Quick access demo buttons (locked behind event password) */}
+        {unlocked ? (
+          <div className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Sparkles className="w-4 h-4 text-primary" />
+              Acceso rápido demo
+            </div>
+            <div className="space-y-2">
+              {DEMO_ACCOUNTS.map(({ email: e, password: p, label, icon: Icon, desc }) => (
+                <button
+                  key={e}
+                  onClick={() => signIn(e, p)}
+                  disabled={submitting}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors text-left disabled:opacity-50"
+                >
+                  <Icon className="w-4 h-4 text-primary flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium text-foreground">{label}</div>
+                    <div className="text-[11px] text-muted-foreground truncate">{desc}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground text-center">
+              Contraseña común: <code className="font-mono">demo1234</code>
+            </p>
           </div>
-          <div className="space-y-2">
-            {DEMO_ACCOUNTS.map(({ email: e, password: p, label, icon: Icon, desc }) => (
-              <button
-                key={e}
-                onClick={() => signIn(e, p)}
-                disabled={submitting}
-                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors text-left disabled:opacity-50"
-              >
-                <Icon className="w-4 h-4 text-primary flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-medium text-foreground">{label}</div>
-                  <div className="text-[11px] text-muted-foreground truncate">{desc}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-          <p className="text-[11px] text-muted-foreground text-center">
-            Contraseña común: <code className="font-mono">demo1234</code>
-          </p>
-        </div>
+        ) : (
+          <form onSubmit={tryUnlock} className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-3">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Lock className="w-4 h-4 text-primary" />
+              Acceso al demo
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Ingresá la clave del evento para habilitar los accesos de demostración.
+            </p>
+            <Input
+              type="password"
+              value={eventPw}
+              onChange={(e) => setEventPw(e.target.value)}
+              placeholder="Clave del evento"
+              autoFocus
+            />
+            <Button type="submit" className="w-full" size="sm">Desbloquear demo</Button>
+          </form>
+        )}
 
         {/* Standard login */}
         <form onSubmit={handleLogin} className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-3">
@@ -135,6 +155,12 @@ const LoginPage = () => {
             {seeding ? 'Generando datos...' : 'Regenerar datos de demostración'}
           </button>
         </div>
+
+        {/* Copyright notice */}
+        <p className="text-[10px] text-muted-foreground text-center leading-relaxed px-2">
+          © 2026 Diagnóstico Médico Reconquista — Todos los derechos reservados.<br />
+          Software propietario. Prohibida su reproducción, distribución o uso sin autorización escrita.
+        </p>
       </div>
     </div>
   );
