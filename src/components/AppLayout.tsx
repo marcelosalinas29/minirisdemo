@@ -48,7 +48,10 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
         <div className="flex items-center gap-3 max-w-2xl mx-auto">
           <img src={clinicLogo} alt="DMR" className="w-9 h-9 rounded-lg object-cover bg-white/10 p-0.5" />
           <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-bold text-primary-foreground/90 tracking-wide uppercase">Ecografía y Doppler</h1>
+            <h1 className="text-sm font-bold text-primary-foreground/90 tracking-wide uppercase flex items-center gap-1.5">
+              Ecografía y Doppler
+              <span className="text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded">DEMO</span>
+            </h1>
             <p className="text-xs text-primary-foreground/60 truncate">{title}</p>
           </div>
           <div className="flex items-center gap-2">
