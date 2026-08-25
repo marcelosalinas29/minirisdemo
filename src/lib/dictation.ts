@@ -12,7 +12,7 @@ export function normalizePunctuation(input: string): string {
   for (const re of PROTECTED) {
     text = text.replace(re, (m) => {
       protectedChunks.push(m);
-      return ${PROTECT_TOKEN}${protectedChunks.length - 1}${PROTECT_TOKEN};
+      return PROTECT_TOKEN + String(protectedChunks.length - 1) + PROTECT_TOKEN;
     });
   }
   const NL = '\u0001';
@@ -40,7 +40,7 @@ export function normalizePunctuation(input: string): string {
     text = text.replace(re, replace);
   }
   text = text.replace(
-    new RegExp(${PROTECT_TOKEN}(\\d+)${PROTECT_TOKEN}, 'g'),
+    new RegExp(PROTECT_TOKEN + '(\\d+)' + PROTECT_TOKEN, 'g'),
     (_m, i) => protectedChunks[Number(i)] ?? '',
   );
   return cleanupSpacing(text);
@@ -52,8 +52,8 @@ export function cleanupSpacing(text: string): string {
   out = out.replace(/([.,;:!?])(?=[^\s\d.,;:!?)\u0001\u0002])/g, '$1 ');
   out = out.replace(/\(\s+/g, '(');
   out = out.replace(/[ \t]{2,}/g, ' ');
-  out = out.replace(new RegExp(\\s*\u0002\\s*, 'g'), '\n\n');
-  out = out.replace(new RegExp(\\s*\u0001\\s*, 'g'), '\n');
+  out = out.replace(new RegExp('\\s*\u0002\\s*', 'g'), '\n\n');
+  out = out.replace(new RegExp('\\s*\u0001\\s*', 'g'), '\n');
   out = out.replace(/\.{4,}/g, '...');
   out = out.replace(/([.,;:])\1+/g, '$1');
   out = out.replace(/(^|[.!?]\s+|\n)([a-záéíóúñ])/g, (_m, p, c) => p + c.toUpperCase());
