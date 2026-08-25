@@ -2,8 +2,8 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { User, Phone, Calendar, FileText, ImagePlus, Send, Download, Trash2, ChevronDown, Edit2, Save, Pencil } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { User, Phone, Calendar, FileText, ImagePlus, Send, Download, Trash2, ChevronDown, Edit2, Save, Pencil, Mic, Sparkles } from 'lucide-react';
+import DictationPanel from '@/components/DictationPanel';
 import { calcularEdad, calcularEdadDetallada, formatEdad } from '@/types/medical';
 import AppLayout from '@/components/AppLayout';
 import { useClinicStore } from '@/store/useClinicStore';
@@ -76,6 +76,8 @@ const AppointmentPage = () => {
   const [isEditing, setIsEditing] = useState(!appointment?.report || isReportEmpty(appointment?.report || ''));
   const [report, setReport] = useState(appointment?.report || '');
   const [reportLoadedFromDb, setReportLoadedFromDb] = useState(false);
+  const [showDictation, setShowDictation] = useState(false);
+  const [dictationAutoStart, setDictationAutoStart] = useState(false);
   const [detailLoading, setDetailLoading] = useState(true);
   const [editingPatient, setEditingPatient] = useState(false);
   const [patientForm, setPatientForm] = useState({
