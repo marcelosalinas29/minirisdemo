@@ -301,7 +301,9 @@ const AppointmentPage = () => {
     // already set aside for the signature, with margin to spare.
     const footerTextZoneHeight = 18;
     const reservedSignatureHeight = 20 + 2 + 12 + 2 * 4 + 4; // full-size signature block
-    const bottomLimit = pageHeight - footerTextZoneHeight - reservedSignatureHeight - 10;
+    const signatureTopGap = 10;
+    const footerSafeLimit = pageHeight - footerTextZoneHeight - 10;
+    const bottomLimit = footerSafeLimit - signatureTopGap - reservedSignatureHeight;
 
     // ====== HEADER (logo + subtitle) ======
     try {
@@ -609,7 +611,7 @@ const AppointmentPage = () => {
     renderPdfParagraphs(pdfParagraphs, bodyFontSize);
 
     // ====== SIGNATURE - right-aligned, below report ======
-    y += 10;
+    y += signatureTopGap;
 
     const signBlockWidth = 70;
     const signX = pageWidth - margin - signBlockWidth;
@@ -657,7 +659,7 @@ const AppointmentPage = () => {
     // + n*4 specialty + 4 license padding.
     const signatureBlockHeight = sigH + (sigH > 0 ? 2 : 0) + 12 + specialtyLinesPre.length * 4 + 4;
 
-    if (y + signatureBlockHeight > bottomLimit) {
+    if (y + signatureBlockHeight > footerSafeLimit) {
       drawFooter(false);
       doc.addPage();
       y = 20;
