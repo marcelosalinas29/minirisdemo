@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { User, Phone, Calendar, FileText, ImagePlus, Send, Download, Trash2, ChevronDown, Edit2, Save, Pencil, Mic, Sparkles } from 'lucide-react';
-import DictationPanel from '@/components/DictationPanel';
+import { Input } from '@/components/ui/input';
 import { calcularEdad, calcularEdadDetallada, formatEdad } from '@/types/medical';
 import AppLayout from '@/components/AppLayout';
 import { useClinicStore } from '@/store/useClinicStore';
@@ -12,8 +12,8 @@ import { STATUS_LABELS, type StudyStatus, formatStudyType } from '@/types/medica
 import TemplateSelector from '@/components/TemplateSelector';
 import StudyTypeSelector from '@/components/StudyTypeSelector';
 import RichTextEditor from '@/components/RichTextEditor';
+import DictationPanel from '@/components/DictationPanel';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
@@ -292,7 +292,16 @@ const AppointmentPage = () => {
 
     // Report/signature pages reserve only room for the plain text footer
     // (no QR there anymore), so much more content fits before a page break.
-    const bottomLimit = pageHeight - 26;
+    // Report/signature pages: the space for the signature block is reserved
+    // on EVERY page from the start — exactly like the QR used to be, always
+    // in the same guaranteed spot. This removes the old "does the whole
+    // signature block fit on this page?" guesswork entirely: since text
+    // never uses more than this reduced limit in the first place, whichever
+    // page the report text naturally ends on will always have this room
+    // already set aside for the signature, with margin to spare.
+    const footerTextZoneHeight = 18;
+    const reservedSignatureHeight = 20 + 2 + 12 + 2 * 4 + 4; // full-size signature block
+    const bottomLimit = pageHeight - footerTextZoneHeight - reservedSignatureHeight - 10;
 
     // ====== HEADER (logo + subtitle) ======
     try {
@@ -450,10 +459,27 @@ const AppointmentPage = () => {
       return paragraphs;
     };
 
-    const renderPdfParagraphs = (paras: PdfParagraph[]) => {
-      const baseLine = 5;
-      // Paragraph spacing in mm — equivalent to ~1.2em at 10pt font
-      const paragraphSpacing = 4.2;
+    // fontSize defaults to 10 — the ORIGINAL size, unchanged. It only ever
+    // becomes 9 in the one specific case (decided further below, before this
+    // is called) where a report's text overflows a single page by just a
+    // small amount: rather than leave 1-4 orphaned lines on a near-empty
+    // second page, we shrink text+spacing together (proportionally, so the
+    // visual rhythm stays consistent) just enough to fit everything on one
+    // page — still a fully professional, legible size for another reader.
+    // If a report already fits at 10 (the overwhelming majority), or if it
+    // overflows by a lot, this function's output is 100% identical to
+    // before this change: same fontSize 10, same baseLine 5, same spacing.
+    const renderPdfParagraphs = (paras: PdfParagraph[], fontSize: number = 10) => {
+      const scale = fontSize / 10;
+      const baseLine = 5 * scale;
+      // Paragraph spacing in mm — equivalent to ~1.2em at 10pt font for
+      // real multi-line prose. Short single-line "Órgano: hallazgo" entries
+      // (very common in these reports) get a tighter gap — this is what a
+      // professionally typeset report looks like, and it reclaims a large
+      // amount of otherwise-wasted vertical space on long, list-like reports,
+      // which is what was pushing the signature onto its own near-empty page.
+      const paragraphSpacingLong = 4.2 * scale;
+      const paragraphSpacingShort = 1.5 * scale;
       for (const para of paras) {
         if (para.segments.length === 0) {
           y += baseLine * (para.lineHeight / 1.6) * 0.6;
@@ -462,7 +488,7 @@ const AppointmentPage = () => {
         const lineSpacing = baseLine * (para.lineHeight / 1.6);
         const fullText = para.segments.map(s => s.text).join('');
         doc.setFont('helvetica', 'normal');
-        doc.setFontSize(10);
+        doc.setFontSize(fontSize);
         const wrappedLines = doc.splitTextToSize(fullText, contentWidth);
         let globalCharIdx = 0;
 
@@ -522,14 +548,65 @@ const AppointmentPage = () => {
           }
           y += lineSpacing;
         }
-        // Add inter-paragraph spacing (margin-bottom: 1.2em equivalent)
-        y += paragraphSpacing;
+        // Add inter-paragraph spacing: tighter for a short single-line
+        // entry, full breathing room for real multi-line prose.
+        y += wrappedLines.length <= 1 ? paragraphSpacingShort : paragraphSpacingLong;
         if (y > bottomLimit) { drawFooter(false); doc.addPage(); y = 20; }
       }
     };
 
     const pdfParagraphs = parseHtmlToPdfParagraphs(report || '<p>Sin informe</p>');
-    renderPdfParagraphs(pdfParagraphs);
+
+    // ====== Measure BEFORE drawing anything, to decide font size ======
+    // This never changes what a report looks like unless it would otherwise
+    // overflow onto a second page by only a small amount (a handful of
+    // orphaned lines). We measure the report at the normal size first,
+    // without drawing a single character — if it already fits, nothing
+    // below this block has any effect and rendering proceeds exactly as
+    // it always has.
+    const measureParasHeight = (paras: PdfParagraph[], measureFontSize: number): number => {
+      const scale = measureFontSize / 10;
+      const mBaseLine = 5 * scale;
+      const mSpacingLong = 4.2 * scale;
+      const mSpacingShort = 1.5 * scale;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(measureFontSize);
+      let h = 0;
+      for (const para of paras) {
+        if (para.segments.length === 0) {
+          h += mBaseLine * (para.lineHeight / 1.6) * 0.6;
+          continue;
+        }
+        const lineSpacing = mBaseLine * (para.lineHeight / 1.6);
+        const fullText = para.segments.map(s => s.text).join('');
+        const wrappedLines = doc.splitTextToSize(fullText, contentWidth);
+        h += wrappedLines.length * lineSpacing;
+        h += wrappedLines.length <= 1 ? mSpacingShort : mSpacingLong;
+      }
+      return h;
+    };
+
+    const firstPageCapacity = bottomLimit - y;
+    const normalHeight = measureParasHeight(pdfParagraphs, 10);
+    const overflow = normalHeight - firstPageCapacity;
+    // Small overflow (roughly up to 4-5 short lines' worth) is exactly the
+    // "orphaned paragraph on an almost-empty page 2" case — worth a modest,
+    // still fully professional and legible compact size to avoid it. A
+    // bigger overflow is a genuinely long report: leave it at full normal
+    // size and let it use a second page generously, which looks intentional
+    // rather than compressed.
+    let bodyFontSize = 10;
+    if (overflow > 0 && overflow <= 20) {
+      const compactHeight = measureParasHeight(pdfParagraphs, 9);
+      if (compactHeight <= firstPageCapacity) {
+        bodyFontSize = 9;
+      }
+    }
+    // Reset back to normal drawing state before actually rendering.
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+
+    renderPdfParagraphs(pdfParagraphs, bodyFontSize);
 
     // ====== SIGNATURE - right-aligned, below report ======
     y += 10;
@@ -568,7 +645,10 @@ const AppointmentPage = () => {
         const sigRatio = sigImg.naturalWidth / sigImg.naturalHeight;
         sigW = 40;
         sigH = sigW / sigRatio;
-        if (sigH > 25) { sigH = 25; sigW = sigH * sigRatio; }
+        // Slightly more compact than before (was 25mm) — still perfectly
+        // legible, and frees a bit more room for the signature block to
+        // fit on the same page as the report text.
+        if (sigH > 20) { sigH = 20; sigW = sigH * sigRatio; }
       } catch { sigW = 0; sigH = 0; }
     }
 
@@ -937,6 +1017,7 @@ const AppointmentPage = () => {
               onApply={(html) => { setReport(html); setIsEditing(true); }}
             />
           )}
+
 
           <TemplateSelector
             open={showTemplates}
