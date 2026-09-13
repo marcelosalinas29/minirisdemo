@@ -35,8 +35,15 @@ const ProfilePage = () => {
         .upload(path, file, { upsert: true });
       if (uploadErr) throw uploadErr;
 
-      const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
-      const avatarUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      // Bucket privado: URL firmada de larga duración (10 años) en vez de
+      // pública para siempre. El separador antes de "t=" cambia según si
+      // la URL firmada ya trae un "?" (por su token) o no.
+      const { data: urlData, error: signError } = await supabase.storage
+        .from('avatars')
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
+      if (signError || !urlData) throw signError || new Error('No se pudo generar el link del avatar.');
+      const separator = urlData.signedUrl.includes('?') ? '&' : '?';
+      const avatarUrl = `${urlData.signedUrl}${separator}t=${Date.now()}`;
 
       await supabase.from('profiles').update({ avatar_url: avatarUrl } as any).eq('user_id', user.id);
       await refreshProfile();
