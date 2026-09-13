@@ -211,8 +211,15 @@ const AppointmentPage = () => {
           .from('estudios_imagenes')
           .upload(fileName, compressed, { contentType: 'image/jpeg', upsert: false });
         if (uploadError) throw uploadError;
-        const { data: urlData } = supabase.storage.from('estudios_imagenes').getPublicUrl(fileName);
-        urls.push(urlData.publicUrl);
+        // Bucket privado: en vez de una URL pública para siempre, generamos
+        // una URL firmada de larga duración (10 años) — solo quien tenga
+        // este link exacto puede ver la imagen; nadie puede "listar" ni
+        // adivinar el resto de las imágenes de otros pacientes.
+        const { data: urlData, error: signError } = await supabase.storage
+          .from('estudios_imagenes')
+          .createSignedUrl(fileName, 60 * 60 * 24 * 365 * 10);
+        if (signError || !urlData) throw signError || new Error('No se pudo generar el link de la imagen.');
+        urls.push(urlData.signedUrl);
       }
       await addStorageImagesToAppointment(id, urls);
       toast.success(`${urls.length} imagen(es) cargada(s)`);
@@ -755,15 +762,34 @@ const AppointmentPage = () => {
   };
 
   // Builds PDF with embedded QR, uploads it to Storage under a deterministic
-  // permanent path, and returns both the doc and the public URL.
+  // path, and returns both the doc and the (signed, long-lived) URL.
   const buildAndPublishPdf = async (): Promise<{ doc: jsPDF; publicUrl: string }> => {
     if (!appointment) throw new Error('No appointment');
     // Deterministic, permanent path per appointment (overwritten on each save)
     const storagePath = `informe_${appointment.id}.pdf`;
-    const { data: urlData } = supabase.storage.from('reports').getPublicUrl(storagePath);
-    const publicUrl = urlData.publicUrl;
 
-    // Generate QR pointing to the public URL
+    // Bucket privado: una URL firmada solo se puede generar para un objeto
+    // que YA existe en Storage. Como el QR necesita conocer la URL final
+    // ANTES de que el PDF (que lo contiene) esté armado, primero "reservamos"
+    // el archivo con un placeholder mínimo en ese mismo path, generamos la
+    // URL firmada sobre él, y recién después subimos el PDF real, pisando
+    // el placeholder. El resultado final es idéntico al de antes, solo
+    // cambia el orden interno de los pasos.
+    const { error: placeholderError } = await supabase.storage
+      .from('reports')
+      .upload(storagePath, new Blob(['placeholder'], { type: 'application/pdf' }), {
+        contentType: 'application/pdf',
+        upsert: true,
+      });
+    if (placeholderError) throw placeholderError;
+
+    const { data: urlData, error: signError } = await supabase.storage
+      .from('reports')
+      .createSignedUrl(storagePath, 60 * 60 * 24 * 365 * 10);
+    if (signError || !urlData) throw signError || new Error('No se pudo generar el link del informe.');
+    const publicUrl = urlData.signedUrl;
+
+    // Generate QR pointing to the signed URL
     const qrDataUrl = await QRCode.toDataURL(publicUrl, {
       margin: 1,
       width: 400,
