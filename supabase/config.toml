@@ -3,5 +3,3 @@ project_id = "akyqwwqdhfulpfsvuzba"
 [functions.seed-demo]
 verify_jwt = false
 
-[functions.tmp-resign-urls]
-verify_jwt = false
