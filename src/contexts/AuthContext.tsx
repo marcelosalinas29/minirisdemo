@@ -13,6 +13,7 @@ interface Profile {
   signature_text: string | null;
   avatar_url: string | null;
   slot_interval: number;
+  is_admin?: boolean;
 }
 
 interface AuthContextType {
@@ -23,6 +24,7 @@ interface AuthContextType {
   isDoctor: boolean;
   isSecretary: boolean;
   isViewer: boolean;
+  isAdmin: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -84,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isDoctor: role === 'doctor',
       isSecretary: role === 'secretary',
       isViewer: role === 'viewer',
+      isAdmin: profile?.is_admin === true,
       loading, signOut, refreshProfile,
     }}>
       {children}
