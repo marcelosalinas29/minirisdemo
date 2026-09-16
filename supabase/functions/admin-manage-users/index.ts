@@ -71,6 +71,15 @@ Deno.serve(async (req) => {
       if (createErr) throw createErr;
       const newUserId = created.user.id;
 
+      // No dependemos del trigger automático de la base (handle_new_user)
+      // para crear el perfil -- lo creamos acá explícitamente, con
+      // upsert por si el trigger SÍ llegara a dispararlo también, para
+      // no chocar con un duplicado.
+      const { error: profileErr } = await admin
+        .from('profiles')
+        .upsert({ user_id: newUserId, full_name, email }, { onConflict: 'user_id' });
+      if (profileErr) throw profileErr;
+
       const { error: roleErr } = await admin.from('user_roles').insert({ user_id: newUserId, role });
       if (roleErr) throw roleErr;
 
