@@ -9,10 +9,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { toast } from 'sonner';
-import { Save, PenLine, Camera, Clock } from 'lucide-react';
+import { Save, PenLine, Camera, Clock, ShieldCheck } from 'lucide-react';
 
 const ProfilePage = () => {
-  const { profile, role, isDoctor, isSecretary, user, refreshProfile } = useAuth();
+  const { profile, role, isDoctor, isSecretary, isAdmin, user, refreshProfile } = useAuth();
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState(profile?.full_name ?? '');
@@ -179,6 +179,13 @@ const ProfilePage = () => {
               <Button variant="outline" className="w-full" onClick={() => navigate('/schedule')}>
                 <Clock className="w-4 h-4 mr-2" />
                 Configurar Horarios de Médicos
+              </Button>
+            )}
+
+            {isAdmin && (
+              <Button variant="outline" className="w-full" onClick={() => navigate('/admin-users')}>
+                <ShieldCheck className="w-4 h-4 mr-2" />
+                Administrar usuarios
               </Button>
             )}
 
