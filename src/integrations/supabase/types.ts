@@ -221,6 +221,7 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          is_admin: boolean
           license_numbers: string | null
           signature_text: string | null
           slot_interval: number
@@ -234,6 +235,7 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
+          is_admin?: boolean
           license_numbers?: string | null
           signature_text?: string | null
           slot_interval?: number
@@ -247,6 +249,7 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          is_admin?: boolean
           license_numbers?: string | null
           signature_text?: string | null
           slot_interval?: number
