@@ -297,20 +297,10 @@ const AppointmentPage = () => {
       doc.setTextColor(0, 0, 0);
     };
 
-    // Report/signature pages reserve only room for the plain text footer
-    // (no QR there anymore), so much more content fits before a page break.
-    // Report/signature pages: the space for the signature block is reserved
-    // on EVERY page from the start — exactly like the QR used to be, always
-    // in the same guaranteed spot. This removes the old "does the whole
-    // signature block fit on this page?" guesswork entirely: since text
-    // never uses more than this reduced limit in the first place, whichever
-    // page the report text naturally ends on will always have this room
-    // already set aside for the signature, with margin to spare.
-    const footerTextZoneHeight = 18;
-    const reservedSignatureHeight = 20 + 2 + 12 + 2 * 4 + 4; // full-size signature block
-    const signatureTopGap = 10;
-    const footerSafeLimit = pageHeight - footerTextZoneHeight - 10;
-    const bottomLimit = footerSafeLimit - signatureTopGap - reservedSignatureHeight;
+    // Report/signature pages reserve only room for the plain text footer.
+    // The signature is NOT reserved on every page: only the actual content
+    // flow determines the page break, preserving the Production behavior.
+    const bottomLimit = pageHeight - 26;
 
     // ====== HEADER (logo + subtitle) ======
     try {
@@ -566,59 +556,13 @@ const AppointmentPage = () => {
 
     const pdfParagraphs = parseHtmlToPdfParagraphs(report || '<p>Sin informe</p>');
 
-    // ====== Measure BEFORE drawing anything, to decide font size ======
-    // This never changes what a report looks like unless it would otherwise
-    // overflow onto a second page by only a small amount (a handful of
-    // orphaned lines). We measure the report at the normal size first,
-    // without drawing a single character — if it already fits, nothing
-    // below this block has any effect and rendering proceeds exactly as
-    // it always has.
-    const measureParasHeight = (paras: PdfParagraph[], measureFontSize: number): number => {
-      const scale = measureFontSize / 10;
-      const mBaseLine = 5 * scale;
-      const mSpacingLong = 4.2 * scale;
-      const mSpacingShort = 1.5 * scale;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(measureFontSize);
-      let h = 0;
-      for (const para of paras) {
-        if (para.segments.length === 0) {
-          h += mBaseLine * (para.lineHeight / 1.6) * 0.6;
-          continue;
-        }
-        const lineSpacing = mBaseLine * (para.lineHeight / 1.6);
-        const fullText = para.segments.map(s => s.text).join('');
-        const wrappedLines = doc.splitTextToSize(fullText, contentWidth);
-        h += wrappedLines.length * lineSpacing;
-        h += wrappedLines.length <= 1 ? mSpacingShort : mSpacingLong;
-      }
-      return h;
-    };
-
-    const firstPageCapacity = bottomLimit - y;
-    const normalHeight = measureParasHeight(pdfParagraphs, 10);
-    const overflow = normalHeight - firstPageCapacity;
-    // Small overflow (roughly up to 4-5 short lines' worth) is exactly the
-    // "orphaned paragraph on an almost-empty page 2" case — worth a modest,
-    // still fully professional and legible compact size to avoid it. A
-    // bigger overflow is a genuinely long report: leave it at full normal
-    // size and let it use a second page generously, which looks intentional
-    // rather than compressed.
-    let bodyFontSize = 10;
-    if (overflow > 0 && overflow <= 20) {
-      const compactHeight = measureParasHeight(pdfParagraphs, 9);
-      if (compactHeight <= firstPageCapacity) {
-        bodyFontSize = 9;
-      }
-    }
-    // Reset back to normal drawing state before actually rendering.
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-
-    renderPdfParagraphs(pdfParagraphs, bodyFontSize);
+    // Render at the normal report font size (10 pt).
+    // We deliberately do not auto-shrink the report body: pagination should
+    // remain predictable and visually consistent across medical reports.
+    renderPdfParagraphs(pdfParagraphs);
 
     // ====== SIGNATURE - right-aligned, below report ======
-    y += signatureTopGap;
+    y += 10;
 
     const signBlockWidth = 70;
     const signX = pageWidth - margin - signBlockWidth;
@@ -662,11 +606,63 @@ const AppointmentPage = () => {
     }
 
     const specialtyLinesPre = (pdfProfile?.specialty || 'Médico especialista en\nDiagnóstico por Imágenes').split('\n');
-    // Total signature block height: image + 2 gap + line + 12 (to specialty start)
-    // + n*4 specialty + 4 license padding.
-    const signatureBlockHeight = sigH + (sigH > 0 ? 2 : 0) + 12 + specialtyLinesPre.length * 4 + 4;
+    let signatureBlockHeight = sigH + (sigH > 0 ? 2 : 0) + 12 + specialtyLinesPre.length * 4 + 4;
 
-    if (y + signatureBlockHeight > footerSafeLimit) {
+    // Two-stage near-miss compaction:
+    // 1) tighten only the internal signature spacing;
+    // 2) only if necessary, reduce the signature image proportionally,
+    //    never below 14 mm high.
+    // The normal case is untouched.
+    let sigImgGap = 2;
+    let sigLineGap = 12;
+    let sigSpecLine = 4;
+    let sigLicensePad = 4;
+
+    const remaining = bottomLimit - y;
+    const shortfall = signatureBlockHeight - remaining;
+
+    if (shortfall > 0) {
+      const spacingMaxRecovery =
+        1 + 2 + specialtyLinesPre.length * 0.7 + 1;
+      const k1 = Math.min(1, shortfall / spacingMaxRecovery);
+
+      sigImgGap = 2 - k1 * 1;
+      sigLineGap = 12 - k1 * 2;
+      sigSpecLine = 4 - k1 * 0.7;
+      sigLicensePad = 4 - k1 * 1;
+
+      signatureBlockHeight =
+        sigH +
+        (sigH > 0 ? sigImgGap : 0) +
+        sigLineGap +
+        specialtyLinesPre.length * sigSpecLine +
+        sigLicensePad;
+
+      const shortfall2 = signatureBlockHeight - remaining;
+
+      if (shortfall2 > 0 && sigH > 0) {
+        const SIG_MIN_H = 14;
+        const imageMaxRecovery = Math.max(0, sigH - SIG_MIN_H);
+
+        if (imageMaxRecovery > 0) {
+          const k2 = Math.min(1, shortfall2 / imageMaxRecovery);
+          sigH = sigH - k2 * imageMaxRecovery;
+          sigW = sigH * sigRatio;
+
+          signatureBlockHeight =
+            sigH +
+            sigImgGap +
+            sigLineGap +
+            specialtyLinesPre.length * sigSpecLine +
+            sigLicensePad;
+        }
+      }
+    }
+
+    // Final safety check: if the compacted signature still does not fit,
+    // preserve the existing behavior and move the entire signature block
+    // to a new page.
+    if (y + signatureBlockHeight > bottomLimit) {
       drawFooter(false);
       doc.addPage();
       y = 20;
@@ -674,7 +670,7 @@ const AppointmentPage = () => {
 
     if (signatureImgSrc && sigH > 0) {
       doc.addImage(signatureImgSrc, 'PNG', signX + (signBlockWidth - sigW) / 2, y, sigW, sigH);
-      y += sigH + 2;
+      y += sigH + sigImgGap;
     }
 
     doc.setDrawColor(37, 99, 135);
@@ -690,12 +686,12 @@ const AppointmentPage = () => {
     doc.setFont('helvetica', 'normal');
     const specialtyLines = (pdfProfile?.specialty || 'Médico especialista en\nDiagnóstico por Imágenes').split('\n');
     specialtyLines.forEach((line, idx) => {
-      doc.text(line, signX + signBlockWidth / 2, y + 12 + idx * 4, { align: 'center' });
+      doc.text(line, signX + signBlockWidth / 2, y + sigLineGap + idx * sigSpecLine, { align: 'center' });
     });
 
     doc.setFontSize(7);
-    const licenseY = y + 12 + specialtyLines.length * 4;
-    doc.text(pdfProfile?.license_numbers || 'MN 134217  MP 7298  Fº54  Lº4to', signX + signBlockWidth / 2, licenseY + 2, { align: 'center' });
+    const licenseY = y + sigLineGap + specialtyLines.length * sigSpecLine;
+    doc.text(pdfProfile?.license_numbers || 'MN 134217  MP 7298  Fº54  Lº4to', signX + signBlockWidth / 2, licenseY + sigLicensePad - 2, { align: 'center' });
 
     // Compute images list BEFORE the footer call below, so we know whether
     // this report/signature page is the last page of the whole document
