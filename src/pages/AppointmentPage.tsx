@@ -557,10 +557,14 @@ const AppointmentPage = () => {
           }
           y += lineSpacing;
         }
-        // Add inter-paragraph spacing: tighter for a short single-line
-        // entry, full breathing room for real multi-line prose.
-        y += wrappedLines.length <= 1 ? paragraphSpacingShort : paragraphSpacingLong;
-        if (y > bottomLimit) { drawFooter(false); doc.addPage(); y = 20; }
+        // Add inter-paragraph spacing only between paragraphs.
+        // Never add trailing spacing after the final report paragraph:
+        // that extra spacing can falsely cross bottomLimit and push the
+        // signature onto an otherwise empty page.
+        if (para !== paras[paras.length - 1]) {
+          y += wrappedLines.length <= 1 ? paragraphSpacingShort : paragraphSpacingLong;
+          if (y > bottomLimit) { drawFooter(false); doc.addPage(); y = 20; }
+        }
       }
     };
 
