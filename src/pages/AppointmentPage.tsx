@@ -592,10 +592,11 @@ const AppointmentPage = () => {
     // above the fixed footer.
     let sigW = 0;
     let sigH = 0;
+    let sigRatio = 1;
     if (signatureImgSrc) {
       try {
         const sigImg = await loadImage(signatureImgSrc);
-        const sigRatio = sigImg.naturalWidth / sigImg.naturalHeight;
+        sigRatio = sigImg.naturalWidth / sigImg.naturalHeight;
         sigW = 40;
         sigH = sigW / sigRatio;
         // Slightly more compact than before (was 25mm) — still perfectly
