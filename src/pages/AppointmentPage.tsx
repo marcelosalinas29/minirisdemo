@@ -307,8 +307,10 @@ const AppointmentPage = () => {
     // page the report text naturally ends on will always have this room
     // already set aside for the signature, with margin to spare.
     const footerTextZoneHeight = 18;
-    const reservedSignatureHeight = 20 + 2 + 12 + 2 * 4 + 4; // full-size signature block
-    const signatureTopGap = 10;
+    // Keep the signature reservation conservative, but recover a small
+    // amount of usable report space without changing the pagination model.
+    const reservedSignatureHeight = 20 + 2 + 12 + 2 * 4 + 4 - 6;
+    const signatureTopGap = 4;
     const footerSafeLimit = pageHeight - footerTextZoneHeight - 10;
     const bottomLimit = footerSafeLimit - signatureTopGap - reservedSignatureHeight;
 
