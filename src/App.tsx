@@ -15,6 +15,7 @@ import LoginPage from "./pages/LoginPage";
 import ProfilePage from "./pages/ProfilePage";
 import ScheduleConfigPage from "./pages/ScheduleConfigPage";
 import AdminUsersPage from "./pages/AdminUsersPage";
+import AdminResendLinksPage from "./pages/AdminResendLinksPage";
 import NotFound from "./pages/NotFound";
 import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
@@ -43,6 +44,7 @@ const App = () => (
                 <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
                 <Route path="/schedule" element={<ProtectedRoute><ScheduleConfigPage /></ProtectedRoute>} />
                 <Route path="/admin-users" element={<ProtectedRoute><AdminUsersPage /></ProtectedRoute>} />
+                <Route path="/admin-resend-links" element={<ProtectedRoute><AdminResendLinksPage /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </RealtimeProvider>
