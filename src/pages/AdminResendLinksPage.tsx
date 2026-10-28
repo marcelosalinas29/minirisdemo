@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { MessageCircle, Check } from 'lucide-react';
+import { MessageCircle, Check, Search } from 'lucide-react';
 
 interface Row {
   id: string;
@@ -41,6 +41,10 @@ const formatDate = (d: string) => {
 
 const MSG = 'Hola. Desde Diagnóstico Médico Reconquista te reenviamos el enlace de tu informe para facilitar el acceso al estudio. Por una actualización técnica de nuestro sistema, te recomendamos utilizar este enlace nuevo para consultar tu informe. Disculpá las molestias.';
 
+const PAGE_SIZE = 1000;
+const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 10;
+const SIGN_BATCH = 100;
+
 const AdminResendLinksPage = () => {
   const { isAdmin, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -52,21 +56,48 @@ const AdminResendLinksPage = () => {
   const load = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('id, patient_id, study_type, date, created_at, patients(name, phone, dni)')
-        .eq('status', 'sent')
-        .lt('created_at', cutoff)
-        .order('date', { ascending: false });
-      if (error) throw error;
-      const result = await Promise.all((data || []).map(async (a: any) => {
-        let link: string | null = null;
+      // 1) Traer TODOS los turnos paginando en bloques de 1000 (la API corta en 1000 por defecto)
+      const all: any[] = [];
+      let from = 0;
+      for (;;) {
+        const { data, error } = await supabase
+          .from('appointments')
+          .select('id, patient_id, study_type, date, created_at, patients(name, phone, dni)')
+          .eq('status', 'sent')
+          .lt('created_at', cutoff)
+          .order('created_at')
+          .order('id')
+          .range(from, from + PAGE_SIZE - 1);
+        if (error) throw error;
+        all.push(...(data || []));
+        if (!data || data.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+
+      // 2) Firmar los PDFs en lotes de 100 paths con createSignedUrls
+      const paths = all.map((a) => `informe_${a.id}.pdf`);
+      const urlMap = new Map<string, string | null>();
+      for (let i = 0; i < paths.length; i += SIGN_BATCH) {
+        const chunk = paths.slice(i, i + SIGN_BATCH);
         try {
-          const { data: s, error: e } = await supabase.storage
+          const { data: signed, error: sErr } = await supabase.storage
             .from('reports')
-            .createSignedUrl(`informe_${a.id}.pdf`, 60 * 60 * 24 * 365 * 10);
-          if (!e && s?.signedUrl) link = s.signedUrl;
-        } catch { /* excepción */ }
+            .createSignedUrls(chunk, SIGNED_URL_TTL);
+          if (sErr) {
+            chunk.forEach((p) => urlMap.set(p, null));
+          } else {
+            chunk.forEach((p, idx) => {
+              const item = signed?.[idx];
+              urlMap.set(p, item && !item.error && item.signedUrl ? item.signedUrl : null);
+            });
+          }
+        } catch {
+          chunk.forEach((p) => urlMap.set(p, null));
+        }
+      }
+
+      const result: Row[] = all.map((a) => {
+        const link = urlMap.get(`informe_${a.id}.pdf`) ?? null;
         return {
           id: a.id,
           patient_id: a.patient_id,
@@ -76,8 +107,8 @@ const AdminResendLinksPage = () => {
           date: a.date,
           link,
           error: !link,
-        } as Row;
-      }));
+        };
+      });
       setRows(result);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'No se pudo cargar la lista.');
@@ -88,9 +119,9 @@ const AdminResendLinksPage = () => {
 
   useEffect(() => {
     if (!authLoading && !isAdmin) { navigate('/'); return; }
-    if (isAdmin && cutoff) load();
+    if (isAdmin) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, isAdmin, cutoff]);
+  }, [authLoading, isAdmin]);
 
   const groups = useMemo(() => {
     const map = new Map<string, Row[]>();
@@ -101,10 +132,25 @@ const AdminResendLinksPage = () => {
     return Array.from(map.values());
   }, [rows]);
 
+  const isPhoneValid = (raw: string) => {
+    if (!raw || !raw.trim()) return false;
+    return normalizePhone(raw).length >= 12;
+  };
+
+  const pdfExceptions = useMemo(() => rows.filter((r) => r.error).length, [rows]);
+  const phoneExceptions = useMemo(
+    () => groups.filter((g) => !isPhoneValid(g[0].phone)).length,
+    [groups]
+  );
+
   const openWhatsApp = (group: Row[]) => {
-    const links = group.filter((r) => r.link).map((r) => r.link);
-    if (links.length === 0) { toast.error('Este paciente no tiene links válidos.'); return; }
-    const text = encodeURIComponent(`${MSG}\n\n${links.join('\n\n')}`);
+    const withLinks = group.filter((r) => r.link);
+    if (withLinks.length === 0) { toast.error('Este paciente no tiene links válidos.'); return; }
+    if (!isPhoneValid(group[0].phone)) { toast.error('Este paciente no tiene un teléfono válido.'); return; }
+    const lines = withLinks.map(
+      (r) => `Estudio: ${r.study_type} - Fecha: ${formatDate(r.date)}\n${r.link}`
+    );
+    const text = encodeURIComponent(`${MSG}\n\n${lines.join('\n\n')}`);
     window.open(`https://wa.me/${normalizePhone(group[0].phone)}?text=${text}`, '_blank');
   };
 
@@ -118,8 +164,13 @@ const AdminResendLinksPage = () => {
             <Label htmlFor="cutoff">Turnos creados antes de</Label>
             <Input id="cutoff" type="date" value={cutoff} onChange={(e) => setCutoff(e.target.value)} className="w-48" />
           </div>
+          <Button onClick={load} disabled={loading}>
+            <Search className="w-4 h-4 mr-1" />Buscar
+          </Button>
           <p className="text-sm font-medium">
-            {loading ? 'Cargando...' : `${rows.length} turnos, ${groups.length} pacientes encontrados`}
+            {loading
+              ? 'Cargando...'
+              : `${rows.length} turnos, ${groups.length} pacientes encontrados — Excepciones: ${pdfExceptions} PDF no encontrado, ${phoneExceptions} teléfono inválido`}
           </p>
         </div>
 
@@ -137,11 +188,18 @@ const AdminResendLinksPage = () => {
               </tr>
             </thead>
             <tbody>
-              {groups.map((group) =>
-                group.map((r, i) => (
+              {groups.map((group) => {
+                const phoneOk = isPhoneValid(group[0].phone);
+                return group.map((r, i) => (
                   <tr key={r.id} className={`border-t ${sent[r.id] ? 'bg-muted/40' : ''}`}>
                     <td className="p-2 font-medium">{i === 0 ? r.patient_name : ''}</td>
-                    <td className="p-2">{i === 0 ? r.phone : ''}</td>
+                    <td className="p-2">
+                      {i === 0 && (
+                        phoneOk
+                          ? r.phone
+                          : <span className="text-destructive">Excepción: teléfono inválido</span>
+                      )}
+                    </td>
                     <td className="p-2">{r.study_type}</td>
                     <td className="p-2">{formatDate(r.date)}</td>
                     <td className="p-2">
@@ -156,14 +214,14 @@ const AdminResendLinksPage = () => {
                     </td>
                     <td className="p-2">
                       {i === 0 && (
-                        <Button size="sm" onClick={() => openWhatsApp(group)} disabled={!group.some((g) => g.link)}>
+                        <Button size="sm" onClick={() => openWhatsApp(group)} disabled={!phoneOk || !group.some((g) => g.link)}>
                           <MessageCircle className="w-3.5 h-3.5 mr-1" />Abrir WhatsApp
                         </Button>
                       )}
                     </td>
                   </tr>
-                ))
-              )}
+                ));
+              })}
               {!loading && rows.length === 0 && (
                 <tr><td colSpan={7} className="p-4 text-center text-muted-foreground">No hay turnos para esa fecha.</td></tr>
               )}
