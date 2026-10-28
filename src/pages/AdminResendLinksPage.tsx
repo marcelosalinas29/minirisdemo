@@ -52,6 +52,7 @@ const AdminResendLinksPage = () => {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState<Record<string, boolean>>({});
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
 
   const load = async () => {
     setLoading(true);
@@ -109,6 +110,18 @@ const AdminResendLinksPage = () => {
           error: !link,
         };
       });
+      const persistedSent: Record<string, boolean> = {};
+      for (let offset = 0; ; offset += PAGE_SIZE) {
+        const { data, error } = await supabase
+          .from('resend_log')
+          .select('appointment_id')
+          .order('appointment_id')
+          .range(offset, offset + PAGE_SIZE - 1);
+        if (error) throw error;
+        (data || []).forEach((entry) => { persistedSent[entry.appointment_id] = true; });
+        if (!data || data.length < PAGE_SIZE) break;
+      }
+      setSent(persistedSent);
       setRows(result);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'No se pudo cargar la lista.');
@@ -138,6 +151,7 @@ const AdminResendLinksPage = () => {
   };
 
   const pdfExceptions = useMemo(() => rows.filter((r) => r.error).length, [rows]);
+  const sentCount = useMemo(() => rows.filter((r) => sent[r.id]).length, [rows, sent]);
   const phoneExceptions = useMemo(
     () => groups.filter((g) => !isPhoneValid(g[0].phone)).length,
     [groups]
@@ -154,6 +168,23 @@ const AdminResendLinksPage = () => {
     window.open(`https://wa.me/${normalizePhone(group[0].phone)}?text=${text}`, '_blank');
   };
 
+  const toggleSent = async (appointmentId: string) => {
+    if (loading || saving[appointmentId]) return;
+    const wasSent = Boolean(sent[appointmentId]);
+    setSaving((current) => ({ ...current, [appointmentId]: true }));
+    try {
+      const { error } = wasSent
+        ? await supabase.from('resend_log').delete().eq('appointment_id', appointmentId)
+        : await supabase.from('resend_log').insert({ appointment_id: appointmentId });
+      if (error) throw error;
+      setSent((current) => ({ ...current, [appointmentId]: !wasSent }));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'No se pudo guardar la marca de enviado.');
+    } finally {
+      setSaving((current) => ({ ...current, [appointmentId]: false }));
+    }
+  };
+
   if (authLoading || !isAdmin) return null;
 
   return (
@@ -164,13 +195,13 @@ const AdminResendLinksPage = () => {
             <Label htmlFor="cutoff">Turnos creados antes de</Label>
             <Input id="cutoff" type="date" value={cutoff} onChange={(e) => setCutoff(e.target.value)} className="w-48" />
           </div>
-          <Button onClick={load} disabled={loading}>
+          <Button onClick={load} disabled={loading || Object.values(saving).some(Boolean)}>
             <Search className="w-4 h-4 mr-1" />Buscar
           </Button>
           <p className="text-sm font-medium">
             {loading
               ? 'Cargando...'
-              : `${rows.length} turnos, ${groups.length} pacientes encontrados — Excepciones: ${pdfExceptions} PDF no encontrado, ${phoneExceptions} teléfono inválido`}
+              : `${rows.length} turnos, ${groups.length} pacientes encontrados — Enviados: ${sentCount} de ${rows.length} — Excepciones: ${pdfExceptions} PDF no encontrado, ${phoneExceptions} teléfono inválido`}
           </p>
         </div>
 
@@ -208,7 +239,7 @@ const AdminResendLinksPage = () => {
                         : <span className="text-primary">Link generado</span>}
                     </td>
                     <td className="p-2">
-                      <Button size="sm" variant={sent[r.id] ? 'default' : 'outline'} onClick={() => setSent((s) => ({ ...s, [r.id]: !s[r.id] }))}>
+                      <Button size="sm" variant={sent[r.id] ? 'default' : 'outline'} disabled={loading || saving[r.id]} onClick={() => toggleSent(r.id)}>
                         <Check className="w-3.5 h-3.5 mr-1" />{sent[r.id] ? 'Enviado' : 'Marcar como enviado'}
                       </Button>
                     </td>
