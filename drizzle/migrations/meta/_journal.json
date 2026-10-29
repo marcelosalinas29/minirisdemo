@@ -8,6 +8,13 @@
       "when": 1793222371478,
       "tag": "0000_create_resend_log",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793311789583,
+      "tag": "0001_resend_log_admin_or_secretary",
+      "breakpoints": true
     }
   ]
 }

@@ -189,7 +189,7 @@ const ProfilePage = () => {
               </Button>
             )}
 
-            {isAdmin && (
+            {(isAdmin || isSecretary) && (
               <Button variant="outline" className="w-full" onClick={() => navigate('/admin-resend-links')}>
                 <ShieldCheck className="w-4 h-4 mr-2" />
                 Reenviar links de informes

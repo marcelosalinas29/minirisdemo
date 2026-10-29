@@ -46,7 +46,7 @@ const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 10;
 const SIGN_BATCH = 100;
 
 const AdminResendLinksPage = () => {
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { isAdmin, isSecretary, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [cutoff, setCutoff] = useState('2026-09-16');
   const [rows, setRows] = useState<Row[]>([]);
