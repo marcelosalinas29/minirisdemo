@@ -46,7 +46,7 @@ const SIGNED_URL_TTL = 60 * 60 * 24 * 365 * 10;
 const SIGN_BATCH = 100;
 
 const AdminResendLinksPage = () => {
-  const { isAdmin, loading: authLoading } = useAuth();
+  const { isAdmin, isSecretary, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [cutoff, setCutoff] = useState('2026-09-16');
   const [rows, setRows] = useState<Row[]>([]);
@@ -131,10 +131,10 @@ const AdminResendLinksPage = () => {
   };
 
   useEffect(() => {
-    if (!authLoading && !isAdmin) { navigate('/'); return; }
-    if (isAdmin) load();
+    if (!authLoading && !isAdmin && !isSecretary) { navigate('/'); return; }
+    if (isAdmin || isSecretary) load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, isAdmin]);
+  }, [authLoading, isAdmin, isSecretary]);
 
   const groups = useMemo(() => {
     const map = new Map<string, Row[]>();
@@ -185,7 +185,7 @@ const AdminResendLinksPage = () => {
     }
   };
 
-  if (authLoading || !isAdmin) return null;
+  if (authLoading || (!isAdmin && !isSecretary)) return null;
 
   return (
     <AppLayout title="Reenviar links de informes" showBack>
