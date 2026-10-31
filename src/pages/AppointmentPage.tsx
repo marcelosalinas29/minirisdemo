@@ -179,18 +179,28 @@ const AppointmentPage = () => {
   };
 
   const compressImage = (file: File, maxWidth = 800, quality = 0.7): Promise<Blob> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
+      reader.onerror = () => reject(new Error('No se pudo leer el archivo de imagen (formato no soportado o archivo dañado).'));
       reader.onload = () => {
         const img = new Image();
+        img.onerror = () => reject(new Error('No se pudo procesar la imagen (formato no soportado, por ejemplo HEIC de algunos celulares).'));
         img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ratio = Math.min(maxWidth / img.width, 1);
-          canvas.width = img.width * ratio;
-          canvas.height = img.height * ratio;
-          const ctx = canvas.getContext('2d')!;
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob((blob) => resolve(blob!), 'image/jpeg', quality);
+          try {
+            const canvas = document.createElement('canvas');
+            const ratio = Math.min(maxWidth / img.width, 1);
+            canvas.width = img.width * ratio;
+            canvas.height = img.height * ratio;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { reject(new Error('No se pudo preparar la imagen para subir.')); return; }
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => {
+              if (!blob) { reject(new Error('No se pudo comprimir la imagen.')); return; }
+              resolve(blob);
+            }, 'image/jpeg', quality);
+          } catch (e) {
+            reject(e instanceof Error ? e : new Error('Error inesperado al procesar la imagen.'));
+          }
         };
         img.src = reader.result as string;
       };
