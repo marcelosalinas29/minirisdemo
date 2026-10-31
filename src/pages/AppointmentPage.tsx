@@ -71,6 +71,8 @@ const AppointmentPage = () => {
   const { profile, isSecretary, isViewer, user } = useAuth();
   const isReadOnly = isSecretary || isViewer;
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Un informe ya realizado solo lo edita el médico que lo hizo (los informes viejos sin médico registrado quedan editables)
+  const isOtherDoctorsReport = !!appointment?.reportedBy && !!user && appointment.reportedBy !== user.id;
   const [showTemplates, setShowTemplates] = useState(false);
   const [showStudySelector, setShowStudySelector] = useState(false);
   const isReportEmpty = (r: string) => !r || r === '<p></p>' || r.replace(/<[^>]*>/g, '').trim() === '';
@@ -137,7 +139,7 @@ const AppointmentPage = () => {
   // No cambia el estado del turno (eso sigue haciéndolo "Guardar Informe").
   const [autoSavedAt, setAutoSavedAt] = useState<Date | null>(null);
   useEffect(() => {
-    if (!id || isReadOnly || !isEditing || detailLoading || !appointment) return;
+    if (!id || isReadOnly || isOtherDoctorsReport || !isEditing || detailLoading || !appointment) return;
     if (isReportEmpty(report) || report === appointment.report) return;
     const t = setTimeout(async () => {
       try {
@@ -153,6 +155,7 @@ const AppointmentPage = () => {
 
   const handleSaveReport = useCallback(async () => {
     if (!id) return;
+    if (isOtherDoctorsReport) return;
     if (isReportEmpty(report)) {
       console.warn('handleSaveReport: report is empty, skipping save');
       return;
@@ -658,11 +661,11 @@ const AppointmentPage = () => {
     const signX = pageWidth - margin - signBlockWidth;
 
     // Determine which profile/email to use for signature
-    // If secretary, use the doctor who reported (reported_by)
+    // Siempre firma el médico que realizó el informe (reported_by), sea quien sea el que genere el PDF
     let pdfProfile = profile;
     let pdfEmail = user?.email || '';
 
-    if (isSecretary && currentAppointment.reportedBy) {
+    if (currentAppointment.reportedBy && currentAppointment.reportedBy !== user?.id) {
       // Fetch the doctor's profile (which now includes email)
       const { data: doctorProfile } = await supabase
         .from('profiles')
@@ -1051,19 +1054,22 @@ const AppointmentPage = () => {
             <div className="flex flex-wrap gap-2">
               {!isReadOnly && (
                 <>
-                  <Button variant="outline" size="sm" onClick={() => setShowTemplates(true)}>
+                  <Button variant="outline" size="sm" disabled={isOtherDoctorsReport} onClick={() => setShowTemplates(true)}>
                     Plantillas <ChevronDown className="w-3 h-3 ml-1" />
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => { setDictationAutoStart(true); setShowDictation(true); }}>
+                  <Button variant="outline" size="sm" disabled={isOtherDoctorsReport} onClick={() => { setDictationAutoStart(true); setShowDictation(true); }}>
                     <Mic className="w-3 h-3 mr-1" /> Dictar
                   </Button>
-                  <Button variant="outline" size="sm" onClick={() => { setDictationAutoStart(false); setShowDictation(true); }}>
+                  <Button variant="outline" size="sm" disabled={isOtherDoctorsReport} onClick={() => { setDictationAutoStart(false); setShowDictation(true); }}>
                     <Sparkles className="w-3 h-3 mr-1" /> IA
                   </Button>
-                  {report && !isEditing && (
+                  {report && !isEditing && !isOtherDoctorsReport && (
                     <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
                       Editar
                     </Button>
+                  )}
+                  {report && isOtherDoctorsReport && (
+                    <span className="text-xs text-muted-foreground self-center">Informe de otro médico: solo él puede editarlo</span>
                   )}
                 </>
               )}
