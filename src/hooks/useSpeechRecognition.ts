@@ -32,6 +32,8 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
     if (!SpeechRecognition) return;
     setError(null);
 
+    // Pedir permiso explícitamente para distinguir un problema de permisos
+    // o de hardware de un problema del reconocimiento de voz.
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       stream.getTracks().forEach((t) => t.stop());
@@ -94,6 +96,7 @@ export function useSpeechRecognition(): SpeechRecognitionHook {
     };
 
     recognition.onend = () => {
+      // Reinicio automático mientras la sesión siga activa
       if (recognitionRef.current) {
         try {
           recognition.start();

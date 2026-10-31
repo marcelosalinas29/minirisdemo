@@ -48,6 +48,25 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
       toast.error('Ingrese el nombre del paciente');
       return;
     }
+    // Guarda anti-duplicado: si este paciente ya tiene una cita en esta fecha y hora,
+    // pedir confirmación explícita antes de crear otra igual.
+    const normDni = dni.replace(/\D/g, '');
+    const existingSameSlot = store.getAppointmentsByDate(date).filter((a) => {
+      if (a.time !== slot) return false;
+      if (patientId && a.patientId === patientId) return true;
+      if (normDni && (a.patient?.dni || '').replace(/\D/g, '') === normDni) return true;
+      return false;
+    });
+    if (existingSameSlot.length > 0) {
+      const ok = window.confirm(
+        `Este paciente ya tiene una cita el ${date} a las ${slot} (${existingSameSlot[0].studyType}). ¿Desea crear otra cita igual de todos modos?`
+      );
+      if (!ok) {
+        toast.info('Turno duplicado cancelado');
+        return;
+      }
+    }
+
     // B: if it's a special study (Doppler / TN / Morfológica / Scan Fetal),
     // verify the next 10-min slot on the same date isn't already taken.
     const effectiveStudy = studyType || 'ECOGRAFIA';
@@ -101,6 +120,7 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
         studyType: studyType || 'ECOGRAFIA',
         date,
         time: slot,
+        observations: observations.trim() || undefined,
       });
       toast.success('Turno confirmado');
       onSaved();
