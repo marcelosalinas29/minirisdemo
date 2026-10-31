@@ -133,6 +133,24 @@ const AppointmentPage = () => {
     }
   }, [appointment?.report, reportLoadedFromDb]);
 
+  // Autoguardado: guarda el borrador 3 segundos después de dejar de escribir.
+  // No cambia el estado del turno (eso sigue haciéndolo "Guardar Informe").
+  const [autoSavedAt, setAutoSavedAt] = useState<Date | null>(null);
+  useEffect(() => {
+    if (!id || isReadOnly || !isEditing || detailLoading || !appointment) return;
+    if (isReportEmpty(report) || report === appointment.report) return;
+    const t = setTimeout(async () => {
+      try {
+        setReportLoadedFromDb(true); // evita que la respuesta pise lo que se siga escribiendo
+        await updateAppointmentReport(id, report, user?.id);
+        setAutoSavedAt(new Date());
+      } catch (e) {
+        console.error('Autosave failed:', e);
+      }
+    }, 3000);
+    return () => clearTimeout(t);
+  }, [report, id, isReadOnly, isEditing, detailLoading, appointment?.report]);
+
   const handleSaveReport = useCallback(async () => {
     if (!id) return;
     if (isReportEmpty(report)) {
@@ -1078,6 +1096,11 @@ const AppointmentPage = () => {
                 disabled={isReadOnly}
                 placeholder="Escriba el informe aquí..."
               />
+              {!isReadOnly && autoSavedAt && (
+                <p className="text-xs text-muted-foreground">
+                  Borrador guardado automáticamente a las {autoSavedAt.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              )}
               {!isReadOnly && (
                 <Button onClick={async () => { await handleSaveReport(); setIsEditing(false); }} className="w-full btn-action-primary">
                   Guardar Informe
