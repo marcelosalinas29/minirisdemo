@@ -15,11 +15,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { CalendarIcon, Clock, AlertTriangle, Timer, Ban } from 'lucide-react';
 
 const NewAppointmentPage = () => {
   const navigate = useNavigate();
-  const { addPatient, addAppointment, searchPatients, patients, findPatientByDni, getAppointmentsByDate } = useClinicStore();
+  const { addPatient, addAppointment, searchPatients, patients, findPatientByDni, getAppointmentsByDate, searchPatientsRemote } = useClinicStore();
   const { doctors, fetchDoctors, fetchAllSchedules, generateAvailableSlots, schedules, isDateBlocked, fetchBlockedDates, blockedDates } = useScheduleStore();
 
   const [dni, setDni] = useState('');
@@ -70,6 +71,12 @@ const NewAppointmentPage = () => {
   }, [dateStr, getAppointmentsByDate]);
 
   const suggestions = name.length >= 2 && !selectedPatientId ? searchPatients(name) : [];
+
+  useEffect(() => {
+    if (selectedPatientId || name.trim().length < 2) return;
+    const t = setTimeout(() => { searchPatientsRemote(name); }, 350);
+    return () => clearTimeout(t);
+  }, [name, selectedPatientId]);
 
   const selectExistingPatient = (p: typeof patients[0]) => {
     setSelectedPatientId(p.id);
@@ -171,8 +178,23 @@ const NewAppointmentPage = () => {
       return;
     }
 
-    if (occupiedSlots.has(finalTime)) {
-      toast.warning('⚠️ Ya existe una cita en ese horario. Se creará de todas formas.');
+    // Un horario normal ocupado no se puede volver a usar: para encimar turnos
+    // hay que usar "Sobreturno" de forma explícita.
+    if (!showOverride) {
+      if (occupiedSlots.has(finalTime)) {
+        toast.error('Ese horario ya está ocupado. Elegí otro horario o usá Sobreturno.');
+        return;
+      }
+      const { data: clash } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('date', dateStr)
+        .eq('time', finalTime)
+        .limit(1);
+      if (clash && clash.length > 0) {
+        toast.error('Ese horario acaba de ser ocupado. Elegí otro horario o usá Sobreturno.');
+        return;
+      }
     }
 
     setSubmitting(true);

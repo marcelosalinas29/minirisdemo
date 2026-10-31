@@ -10,13 +10,19 @@ import { Input } from '@/components/ui/input';
 
 const PatientsPage = () => {
   const [query, setQuery] = useState('');
-  const { searchPatients, patients, getPatientAppointments, fetchPatients, fetchAppointments } = useClinicStore();
+  const { searchPatients, patients, getPatientAppointments, fetchPatients, fetchAppointments, searchPatientsRemote } = useClinicStore();
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchPatients();
     fetchAppointments();
   }, []);
+
+  useEffect(() => {
+    if (query.trim().length < 2) return;
+    const t = setTimeout(() => { searchPatientsRemote(query); }, 350);
+    return () => clearTimeout(t);
+  }, [query]);
 
   const results = query.length >= 1 ? searchPatients(query) : patients;
 

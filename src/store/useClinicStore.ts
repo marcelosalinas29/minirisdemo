@@ -16,7 +16,7 @@ interface ClinicStore {
   fetchPatients: (force?: boolean) => Promise<void>;
   fetchAppointments: (force?: boolean) => Promise<void>;
   addPatient: (patient: Omit<Patient, 'id' | 'age'> & { age?: number }) => Promise<Patient>;
-  addAppointment: (data: { patientId: string; studyType: string; date: string; time: string }) => Promise<Appointment>;
+  addAppointment: (data: { patientId: string; studyType: string; date: string; time: string; observations?: string }) => Promise<Appointment>;
   updateAppointmentStatus: (id: string, status: StudyStatus) => Promise<void>;
   updateAppointmentReport: (id: string, report: string, reportedBy?: string) => Promise<void>;
   updateAppointmentStudyType: (id: string, studyType: string) => Promise<void>;
@@ -33,6 +33,7 @@ interface ClinicStore {
   getAppointmentsByDate: (date: string) => Appointment[];
   getPatientAppointments: (patientId: string) => Appointment[];
   searchPatients: (query: string) => Patient[];
+  searchPatientsRemote: (query: string) => Promise<void>;
   updatePatient: (id: string, data: Partial<Pick<Patient, 'name' | 'phone' | 'dni' | 'obraSocial' | 'fechaNacimiento'>>) => Promise<void>;
   getAppointment: (id: string) => Appointment | undefined;
   getPatient: (id: string) => Patient | undefined;
@@ -94,9 +95,26 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
 
   fetchPatients: async (force = false) => {
     if (!force && get().patients.length > 0 && Date.now() - lastPatientsLoad < LOAD_COOLDOWN) return;
-    const { data } = await supabase.from('patients').select('*').order('name');
-    if (data) {
-      set({ patients: data.map(mapPatient) });
+    // El servidor devuelve como máximo 1000 filas por consulta: paginamos.
+    const PAGE = 1000;
+    const all: any[] = [];
+    for (let page = 0; page < 10; page++) {
+      const from = page * PAGE;
+      const { data, error } = await supabase
+        .from('patients')
+        .select('*')
+        .order('name')
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.error('Error loading patients:', error);
+        break;
+      }
+      if (!data || data.length === 0) break;
+      all.push(...data);
+      if (data.length < PAGE) break;
+    }
+    if (all.length > 0) {
+      set({ patients: all.map(mapPatient) });
       lastPatientsLoad = Date.now();
     }
   },
@@ -166,6 +184,7 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
         status: 'pending',
         date: data.date,
         time: data.time,
+        observations: data.observations || '',
         report: '',
         images: [],
       } as any)
@@ -320,6 +339,39 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
         p.phone.includes(q) ||
         (p.dni && p.dni.includes(q))
     );
+  },
+
+  // Busca directamente en la base y suma los resultados a la lista local,
+  // para que el filtro local encuentre pacientes que no estaban cargados.
+  searchPatientsRemote: async (query) => {
+    const q = query.trim();
+    if (q.length < 2) return;
+    const safe = q.replace(/[%,()]/g, ' ').trim();
+    if (!safe) return;
+    const { data, error } = await supabase
+      .from('patients')
+      .select('*')
+      .or(`name.ilike.%${safe}%,dni.ilike.%${safe}%,phone.ilike.%${safe}%`)
+      .order('name')
+      .limit(50);
+    if (error) {
+      console.error('Error searching patients:', error);
+      return;
+    }
+    if (!data || data.length === 0) return;
+    set((s) => {
+      const byId = new Map(s.patients.map((p) => [p.id, p]));
+      let changed = false;
+      for (const row of data) {
+        const mapped = mapPatient(row);
+        if (!byId.has(mapped.id)) changed = true;
+        byId.set(mapped.id, mapped);
+      }
+      if (!changed) return s;
+      return {
+        patients: Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name)),
+      };
+    });
   },
 
   deleteAppointment: async (id) => {
