@@ -804,7 +804,8 @@ const AppointmentPage = () => {
           }
         }
 
-        drawFooter(true);
+        // El QR va solo en la última hoja del documento
+        drawFooter(imgIndex >= allImages.length);
       }
     }
 
