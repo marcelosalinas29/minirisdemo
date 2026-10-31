@@ -10,6 +10,8 @@ import { useClinicStore } from '@/store/useClinicStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { STATUS_LABELS, type StudyStatus, formatStudyType } from '@/types/medical';
 import TemplateSelector from '@/components/TemplateSelector';
+import TemplateSuggestion from '@/components/TemplateSuggestion';
+import { suggestTemplates } from '@/data/studyTemplateMap';
 import StudyTypeSelector from '@/components/StudyTypeSelector';
 import RichTextEditor from '@/components/RichTextEditor';
 import DictationPanel from '@/components/DictationPanel';
@@ -134,6 +136,17 @@ const AppointmentPage = () => {
       setIsEditing(false);
     }
   }, [appointment?.report, reportLoadedFromDb]);
+
+  // Sugerencia de plantilla: una sola vez al abrir un estudio sin informe
+  const [showSuggestion, setShowSuggestion] = useState(false);
+  const suggestionAsked = useRef(false);
+  useEffect(() => {
+    if (suggestionAsked.current || isReadOnly || detailLoading || !appointment) return;
+    suggestionAsked.current = true;
+    if (isReportEmpty(appointment.report || '') && isReportEmpty(report) && suggestTemplates(appointment.studyType).length > 0) {
+      setShowSuggestion(true);
+    }
+  }, [detailLoading, appointment, isReadOnly]);
 
   // Autoguardado: guarda el borrador 3 segundos después de dejar de escribir.
   // No cambia el estado del turno (eso sigue haciéndolo "Guardar Informe").
@@ -1086,6 +1099,14 @@ const AppointmentPage = () => {
             />
           )}
 
+
+          <TemplateSuggestion
+            open={showSuggestion}
+            onOpenChange={setShowSuggestion}
+            studyType={appointment?.studyType || ''}
+            onApply={applyTemplate}
+            onChooseOther={() => setShowTemplates(true)}
+          />
 
           <TemplateSelector
             open={showTemplates}

@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { FileText, Plus } from 'lucide-react';
 
 /** Convert plain text template to proper HTML with <p> tags per line */
-function textToHtml(text: string): string {
+export function textToHtml(text: string): string {
   return text
     .split('\n')
     .map(line => {
