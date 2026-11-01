@@ -52,6 +52,14 @@ const LoginPage = () => {
     setSubmitting(false);
   };
 
+  const handleForgot = async () => {
+    if (!email.trim()) { toast.error('Escribí tu correo arriba y volvé a tocar "Olvidé mi contraseña".'); return; }
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/reset-password` });
+    // Mismo mensaje exista o no el correo (para no revelar qué correos están registrados)
+    if (error && !/not found|invalid/i.test(error.message)) toast.error('No se pudo enviar el correo. Probá de nuevo en unos minutos.');
+    else toast.success('Si el correo está registrado, te enviamos un link para elegir una contraseña nueva. Revisá también spam.');
+  };
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     signIn(email, password);
@@ -143,6 +151,7 @@ const LoginPage = () => {
           <Button type="submit" className="w-full" disabled={submitting}>
             {submitting ? 'Ingresando...' : 'Ingresar'}
           </Button>
+          <button type="button" onClick={handleForgot} className="w-full text-xs text-primary underline">Olvidé mi contraseña</button>
         </form>
 
         {/* Seed/reset demo */}

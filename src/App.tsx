@@ -14,6 +14,7 @@ import HistoryPage from "./pages/HistoryPage";
 import ImportStudiesPage from "./pages/ImportStudiesPage";
 import AuditPage from "./pages/AuditPage";
 import BackupPage from "./pages/BackupPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import PatientsPage from "./pages/PatientsPage";
 import LoginPage from "./pages/LoginPage";
 import ProfilePage from "./pages/ProfilePage";
@@ -47,6 +48,7 @@ const App = () => (
             <RealtimeProvider>
               <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                 <Route path="/appointment/:id" element={<ProtectedRoute><AppointmentPageKeyed /></ProtectedRoute>} />
                 <Route path="/respaldo" element={<ProtectedRoute><BackupPage /></ProtectedRoute>} />
