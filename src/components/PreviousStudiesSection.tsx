@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { useClinicStore } from '@/store/useClinicStore';
 
 // La tabla/bucket "estudios_previos" son nuevos; se accede sin tipos hasta que se regeneren.
 const db = supabase as any;
@@ -52,7 +53,11 @@ interface Props { patientIds: string[]; primaryPatientId: string; canEdit: boole
 
 /** Estudios previos del paciente (Word, PDF, fotos de papel): se guardan tal cual y se abren desde acá. */
 const PreviousStudiesSection = ({ patientIds, primaryPatientId, canEdit }: Props) => {
-  const { user } = useAuth();
+  const { user, isDoctor, isAdmin } = useAuth();
+  const canManage = isDoctor || isAdmin; // eliminar / reasignar
+  const { searchPatients, searchPatientsRemote } = useClinicStore();
+  const [reassigning, setReassigning] = useState<string | null>(null);
+  const [reassignQuery, setReassignQuery] = useState('');
   const [items, setItems] = useState<PreviousStudy[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
@@ -105,6 +110,31 @@ const PreviousStudiesSection = ({ patientIds, primaryPatientId, canEdit }: Props
     }
   };
 
+  useEffect(() => {
+    if (reassignQuery.trim().length < 2) return;
+    const t = setTimeout(() => { searchPatientsRemote(reassignQuery); }, 350);
+    return () => clearTimeout(t);
+  }, [reassignQuery]);
+
+  const handleDelete = async (it: PreviousStudy) => {
+    if (!confirm(`¿Eliminar "${it.archivo_nombre}"? Se borra el archivo y no se puede recuperar.`)) return;
+    const { data, error } = await db.from('estudios_previos').delete().eq('id', it.id).select('id');
+    if (error || !data || data.length === 0) { toast.error('No se pudo eliminar (sin permiso o ya no existe).'); return; }
+    const { error: rmErr } = await supabase.storage.from('estudios_previos').remove([it.archivo_path]);
+    if (rmErr) console.warn('No se pudo borrar el archivo del almacenamiento:', rmErr.message);
+    toast.success('Estudio previo eliminado');
+    await load();
+  };
+
+  const handleReassign = async (it: PreviousStudy, newPatientId: string) => {
+    if (newPatientId === it.patient_id) { setReassigning(null); return; }
+    const { data, error } = await db.from('estudios_previos').update({ patient_id: newPatientId, estado: 'asignado' }).eq('id', it.id).select('id');
+    if (error || !data || data.length === 0) { toast.error('No se pudo reasignar.'); return; }
+    toast.success('Estudio reasignado al otro paciente');
+    setReassigning(null); setReassignQuery('');
+    await load();
+  };
+
   const openFile = async (it: PreviousStudy) => {
     const { data, error } = await supabase.storage.from('estudios_previos').createSignedUrl(it.archivo_path, 60 * 10);
     if (error || !data) { toast.error('No se pudo abrir el archivo'); return; }
@@ -147,14 +177,32 @@ const PreviousStudiesSection = ({ patientIds, primaryPatientId, canEdit }: Props
         <p className="text-xs text-muted-foreground">Ninguno cargado.</p>
       ) : (
         items.map((it) => (
-          <button key={it.id} onClick={() => openFile(it)} className="w-full text-left bg-muted/30 hover:bg-muted/60 rounded-lg p-3 border border-border">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold uppercase flex items-center gap-1"><FileText className="w-3 h-3" />{it.tipo}</span>
-              <Badge variant="outline" className="text-[10px]">{it.origen === 'externo' ? 'Externo' : 'Propio'}</Badge>
-            </div>
-            <p className="text-xs text-muted-foreground">{fmt(it.fecha)} · {it.archivo_nombre}</p>
-            {it.notas && <p className="text-xs mt-1">{it.notas}</p>}
-          </button>
+          <div key={it.id} className="bg-muted/30 rounded-lg p-3 border border-border space-y-1">
+            <button onClick={() => openFile(it)} className="w-full text-left hover:opacity-80">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-semibold uppercase flex items-center gap-1"><FileText className="w-3 h-3" />{it.tipo}</span>
+                <Badge variant="outline" className="text-[10px]">{it.origen === 'externo' ? 'Externo' : 'Propio'}</Badge>
+              </div>
+              <p className="text-xs text-muted-foreground">{fmt(it.fecha)} · {it.archivo_nombre}</p>
+              {it.notas && <p className="text-xs mt-1">{it.notas}</p>}
+            </button>
+            {canManage && (
+              <div className="flex gap-3 pt-1">
+                <button className="text-xs text-primary underline" onClick={() => { setReassigning(reassigning === it.id ? null : it.id); setReassignQuery(''); }}>Reasignar a otro paciente</button>
+                <button className="text-xs text-destructive underline" onClick={() => handleDelete(it)}>Eliminar</button>
+              </div>
+            )}
+            {canManage && reassigning === it.id && (
+              <div className="space-y-1 pt-1">
+                <Input value={reassignQuery} onChange={(e) => setReassignQuery(e.target.value)} placeholder="DNI o apellido y nombre del paciente correcto" />
+                {reassignQuery.trim().length >= 2 && searchPatients(reassignQuery).slice(0, 8).map((p) => (
+                  <button key={p.id} onClick={() => handleReassign(it, p.id)} className="w-full text-left text-xs bg-card border border-border rounded px-2 py-1.5 hover:bg-muted/50">
+                    {p.name}{p.dni ? ` · DNI ${p.dni}` : ''}{p.id === it.patient_id ? ' (actual)' : ''}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         ))
       )}
     </div>
