@@ -223,8 +223,28 @@ export function getStudyDuration(studyType: string, baseInterval: number = 10): 
 }
 
 /** Format study type string: replace "+" with "," and last with "y" */
+/** Abreviaturas que se escriben completas en cualquier lugar donde se muestre el nombre del estudio. */
+const STUDY_ABBREVIATIONS: [RegExp, string][] = [
+  [/^ECO DOPPLER\b/, 'ECOGRAFÍA DOPPLER'],
+  [/^ECO\b(?!GRAF)/, 'ECOGRAFÍA'],
+  [/\bMMII\b/g, 'DE MIEMBROS INFERIORES'],
+  [/\bMMSS\b/g, 'DE MIEMBROS SUPERIORES'],
+  [/\bTVP\b/g, 'TROMBOSIS VENOSA PROFUNDA'],
+  [/\bTSA\b/g, 'TRONCOS SUPRAAÓRTICOS'],
+  [/\bTN\b/g, 'TRANSLUCENCIA NUCAL'],
+  [/\bTV\b/g, 'TRANSVAGINAL'],
+  [/\bABD\.?(?=\s|$)/g, 'ABDOMINAL'],
+];
+
+/** Nombre completo del estudio: mayúscula y sin abreviar (los estudios viejos guardados abreviados también se ven completos). */
+export function expandStudyName(name: string): string {
+  let out = name.toUpperCase().replace(/\s+/g, ' ').trim();
+  for (const [re, full] of STUDY_ABBREVIATIONS) out = out.replace(re, full);
+  return out.replace(/\s+/g, ' ').trim();
+}
+
 export function formatStudyType(studyType: string): string {
-  const parts = studyType.split(/\s*\+\s*/).map(s => s.trim().toUpperCase()).filter(Boolean);
+  const parts = studyType.split(/\s*\+\s*/).map(s => expandStudyName(s)).filter(Boolean);
   if (parts.length <= 1) return parts[0] || studyType.toUpperCase();
   if (parts.length === 2) return `${parts[0]} Y ${parts[1]}`;
   return parts.slice(0, -1).join(', ') + ' Y ' + parts[parts.length - 1];

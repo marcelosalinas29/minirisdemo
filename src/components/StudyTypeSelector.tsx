@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { STUDY_TYPES } from '@/types/medical';
+import { STUDY_TYPES, expandStudyName } from '@/types/medical';
 import { suggestTemplates } from '@/data/studyTemplateMap';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -89,7 +89,7 @@ const StudyTypeSelector = ({ open, onOpenChange, onApply, currentValue }: StudyT
                     checked={selected.includes(t)}
                     onCheckedChange={() => toggleType(t)}
                   />
-                  <span className="text-sm">{t}</span>
+                  <span className="text-sm font-bold uppercase">{expandStudyName(t)}</span>
                 </label>
               ))}
             </div>
