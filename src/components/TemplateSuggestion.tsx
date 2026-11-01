@@ -22,6 +22,11 @@ const TemplateSuggestion = ({ open, onOpenChange, studyType, onApply, onChooseOt
           <DialogDescription>Estudio: {studyType}</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
+          {options.length > 1 && (
+            <Button className="w-full justify-start" onClick={() => { onApply(options.map((t) => textToHtml(t.content)).join('<p></p>')); onOpenChange(false); }}>
+              Usar todas ({options.length})
+            </Button>
+          )}
           {options.map((t) => (
             <Button key={t.name} className="w-full justify-start" onClick={() => { onApply(textToHtml(t.content)); onOpenChange(false); }}>
               {t.name}
