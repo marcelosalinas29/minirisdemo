@@ -914,6 +914,13 @@ const AppointmentPage = () => {
   const sendWhatsApp = async () => {
     if (!appointment || !id) return;
 
+    // La fecha de nacimiento es obligatoria antes de enviar el informe
+    if (!appointment.patient.fechaNacimiento) {
+      toast.error('Falta la fecha de nacimiento del paciente. Completala antes de enviar el informe.');
+      if (!isReadOnly) setEditingPatient(true);
+      return;
+    }
+
     // Open WhatsApp window IMMEDIATELY (synchronous) to avoid popup blocker
     const waWindow = window.open('about:blank', '_blank');
 
@@ -1053,6 +1060,12 @@ const AppointmentPage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+              {!appointment.patient.fechaNacimiento && (
+                <span className="col-span-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 flex items-center justify-between gap-2">
+                  ⚠ Falta la fecha de nacimiento (obligatoria para enviar el informe)
+                  {!isReadOnly && <button className="underline" onClick={() => setEditingPatient(true)}>Completar</button>}
+                </span>
+              )}
               {appointment.patient.dni && <span>DNI: {appointment.patient.dni}</span>}
               {(() => {
                 const e = appointment.patient.fechaNacimiento
