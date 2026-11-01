@@ -178,6 +178,56 @@ export type Database = {
         }
         Relationships: []
       }
+      estudios_previos: {
+        Row: {
+          archivo_nombre: string
+          archivo_path: string
+          created_at: string
+          created_by: string | null
+          fecha: string
+          id: string
+          mime: string | null
+          notas: string | null
+          origen: string
+          patient_id: string
+          tipo: string
+        }
+        Insert: {
+          archivo_nombre: string
+          archivo_path: string
+          created_at?: string
+          created_by?: string | null
+          fecha: string
+          id?: string
+          mime?: string | null
+          notas?: string | null
+          origen?: string
+          patient_id: string
+          tipo: string
+        }
+        Update: {
+          archivo_nombre?: string
+          archivo_path?: string
+          created_at?: string
+          created_by?: string | null
+          fecha?: string
+          id?: string
+          mime?: string | null
+          notas?: string | null
+          origen?: string
+          patient_id?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estudios_previos_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patients: {
         Row: {
           age: number

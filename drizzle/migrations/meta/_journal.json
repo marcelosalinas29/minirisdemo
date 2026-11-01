@@ -22,6 +22,13 @@
       "when": 1793493151202,
       "tag": "0002_report_versions_indexes_patient_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1793496130296,
+      "tag": "0003_create_estudios_previos",
+      "breakpoints": true
     }
   ]
 }
