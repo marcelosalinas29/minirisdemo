@@ -12,9 +12,10 @@ interface Props {
   date: string;
   onCancel: () => void;
   onSaved: () => void;
+  doctorId?: string;
 }
 
-const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
+const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Props) => {
   const store = useClinicStore();
   const [dni, setDni] = useState('');
   const [dniMaterno, setDniMaterno] = useState(false);
@@ -131,6 +132,7 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
         date,
         time: slot,
         observations: observations.trim() || undefined,
+        doctorId,
       });
       toast.success('Turno confirmado');
       onSaved();

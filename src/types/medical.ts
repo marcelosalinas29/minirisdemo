@@ -34,6 +34,7 @@ export interface Appointment {
   reportedBy?: string | null;
   asistio: boolean;
   createdAt: string;
+  doctorId?: string | null; // médico asignado al turno (los turnos viejos no tienen)
 }
 
 export function normalizeDni(dni?: string | null): string {

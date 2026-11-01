@@ -35,8 +35,9 @@ const Index = () => {
 
   const dateStr = useMemo(() => format(selectedDate, 'yyyy-MM-dd'), [selectedDate]);
   const dayAppointments = useMemo(
-    () => allAppointments.filter(a => a.date === dateStr),
-    [allAppointments, dateStr]
+    // Con un médico elegido: sus turnos y los viejos sin médico asignado
+    () => allAppointments.filter(a => a.date === dateStr && (selectedDoctorId === 'all' || !a.doctorId || a.doctorId === selectedDoctorId)),
+    [allAppointments, dateStr, selectedDoctorId]
   );
   // Set completo de pacientes con historial por DNI normalizado (incluye estudios fuera de la ventana del store).
   const [historicalPatientKeys, setHistoricalPatientKeys] = useState<Set<string>>(new Set());

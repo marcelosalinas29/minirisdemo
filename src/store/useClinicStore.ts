@@ -16,7 +16,7 @@ interface ClinicStore {
   fetchPatients: (force?: boolean) => Promise<void>;
   fetchAppointments: (force?: boolean) => Promise<void>;
   addPatient: (patient: Omit<Patient, 'id' | 'age'> & { age?: number }) => Promise<Patient>;
-  addAppointment: (data: { patientId: string; studyType: string; date: string; time: string; observations?: string }) => Promise<Appointment>;
+  addAppointment: (data: { patientId: string; studyType: string; date: string; time: string; observations?: string; doctorId?: string }) => Promise<Appointment>;
   updateAppointmentStatus: (id: string, status: StudyStatus) => Promise<void>;
   updateAppointmentReport: (id: string, report: string, reportedBy?: string) => Promise<void>;
   updateAppointmentStudyType: (id: string, studyType: string) => Promise<void>;
@@ -42,7 +42,7 @@ interface ClinicStore {
 }
 
 const APPOINTMENTS_WINDOW_DAYS = 180;
-const APPOINTMENT_LIST_COLUMNS = 'id, patient_id, study_type, status, date, time, observations, reported_by, asistio, created_at, created_by, patients(*)';
+const APPOINTMENT_LIST_COLUMNS = 'id, patient_id, study_type, status, date, time, observations, reported_by, asistio, created_at, created_by, doctor_id, patients(*)';
 
 function mapPatient(p: any): Patient {
   return {
@@ -74,6 +74,7 @@ function mapAppointment(a: any): Appointment {
     reportedBy: a.reported_by || null,
     asistio: a.asistio ?? false,
     createdAt: a.created_at,
+    doctorId: a.doctor_id ?? null,
   };
 }
 
@@ -210,6 +211,7 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
         date: data.date,
         time: data.time,
         observations: data.observations || '',
+        doctor_id: data.doctorId || null,
         report: '',
         images: [],
       } as any)

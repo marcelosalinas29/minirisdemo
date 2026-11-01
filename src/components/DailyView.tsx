@@ -522,6 +522,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                       <InlineAppointmentForm
                         slot={slot}
                         date={dateStr}
+                        doctorId={selectedDoctorId && selectedDoctorId !== 'all' ? selectedDoctorId : undefined}
                         onCancel={() => setPreAppointmentSlot(null)}
                         onSaved={() => {
                           setPreAppointmentSlot(null);

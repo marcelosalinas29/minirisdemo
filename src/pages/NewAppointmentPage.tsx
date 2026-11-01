@@ -225,7 +225,7 @@ const NewAppointmentPage = () => {
         patientId = patient.id;
       }
 
-      await addAppointment({ patientId, studyType, date: dateStr, time: finalTime });
+      await addAppointment({ patientId, studyType, date: dateStr, time: finalTime, doctorId: selectedDoctorId || undefined });
       toast.success('Cita creada exitosamente');
       navigate('/');
     } catch (err) {
