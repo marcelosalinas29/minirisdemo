@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import type { Appointment } from '@/types/medical';
 import { getPatientHistoryKey, normalizeDni, isInactiveStatus } from '@/types/medical';
 import DailyView from '@/components/DailyView';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,11 +35,29 @@ const Index = () => {
   const { doctors, fetchDoctors, fetchAllSchedules, generateAvailableSlots, blockedDates, fetchBlockedDates, addBlockedDate, removeBlockedDate, isDateBlocked } = useScheduleStore();
 
   const dateStr = useMemo(() => format(selectedDate, 'yyyy-MM-dd'), [selectedDate]);
-  const dayAppointments = useMemo(
+  // Días anteriores a los 6 meses cargados: se piden al servidor solo al navegar a esa fecha.
+  const [olderDay, setOlderDay] = useState<{ date: string; items: Appointment[] } | null>(null);
+  const windowStart = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 175);
+    return format(d, 'yyyy-MM-dd');
+  }, []);
+  useEffect(() => {
+    if (dateStr >= windowStart) { setOlderDay(null); return; }
+    let cancelled = false;
+    useClinicStore.getState().fetchAppointmentsRange({ from: dateStr, to: dateStr })
+      .then((items) => { if (!cancelled) setOlderDay({ date: dateStr, items }); })
+      .catch((e) => { console.error(e); if (!cancelled) toast.error('No se pudo cargar ese día'); });
+    return () => { cancelled = true; };
+  }, [dateStr, windowStart]);
+
+  const dayAppointments = useMemo(() => {
+    const source = olderDay && olderDay.date === dateStr ? olderDay.items : allAppointments;
     // Con un médico elegido: sus turnos y los viejos sin médico asignado
-    () => allAppointments.filter(a => a.date === dateStr && (selectedDoctorId === 'all' || !a.doctorId || a.doctorId === selectedDoctorId)),
-    [allAppointments, dateStr, selectedDoctorId]
-  );
+    return source
+      .filter(a => a.date === dateStr && (selectedDoctorId === 'all' || !a.doctorId || a.doctorId === selectedDoctorId))
+      .sort((x, y) => x.time.localeCompare(y.time));
+  }, [allAppointments, olderDay, dateStr, selectedDoctorId]);
   // Set completo de pacientes con historial por DNI normalizado (incluye estudios fuera de la ventana del store).
   const [historicalPatientKeys, setHistoricalPatientKeys] = useState<Set<string>>(new Set());
   useEffect(() => {
