@@ -15,6 +15,13 @@
       "when": 1793311789583,
       "tag": "0001_resend_log_admin_or_secretary",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793493151202,
+      "tag": "0002_report_versions_indexes_patient_fields",
+      "breakpoints": true
     }
   ]
 }

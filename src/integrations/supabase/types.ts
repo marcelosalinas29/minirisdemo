@@ -181,34 +181,46 @@ export type Database = {
       patients: {
         Row: {
           age: number
+          apellido: string | null
           created_at: string
           created_by: string | null
           dni: string | null
+          dni_materno: boolean
+          dni_tipo: string
           fecha_nacimiento: string | null
           id: string
           name: string
+          nombres: string | null
           obra_social: string | null
           phone: string
         }
         Insert: {
           age: number
+          apellido?: string | null
           created_at?: string
           created_by?: string | null
           dni?: string | null
+          dni_materno?: boolean
+          dni_tipo?: string
           fecha_nacimiento?: string | null
           id?: string
           name: string
+          nombres?: string | null
           obra_social?: string | null
           phone: string
         }
         Update: {
           age?: number
+          apellido?: string | null
           created_at?: string
           created_by?: string | null
           dni?: string | null
+          dni_materno?: boolean
+          dni_tipo?: string
           fecha_nacimiento?: string | null
           id?: string
           name?: string
+          nombres?: string | null
           obra_social?: string | null
           phone?: string
         }
@@ -258,6 +270,38 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      report_versions: {
+        Row: {
+          appointment_id: string
+          created_at: string
+          id: string
+          report: string
+          saved_by: string | null
+        }
+        Insert: {
+          appointment_id: string
+          created_at?: string
+          id?: string
+          report: string
+          saved_by?: string | null
+        }
+        Update: {
+          appointment_id?: string
+          created_at?: string
+          id?: string
+          report?: string
+          saved_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_versions_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resend_log: {
         Row: {
