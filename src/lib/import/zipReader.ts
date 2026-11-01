@@ -60,7 +60,7 @@ export async function listZipEntries(blob: Blob): Promise<ZipEntry[]> {
 async function inflateRaw(data: Uint8Array): Promise<Uint8Array> {
   const ds = new DecompressionStream('deflate-raw');
   const source = new ReadableStream<Uint8Array>({ start(controller) { controller.enqueue(data); controller.close(); } });
-  const stream = source.pipeThrough(ds);
+  const stream = source.pipeThrough(ds as unknown as ReadableWritablePair<Uint8Array, Uint8Array>);
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 

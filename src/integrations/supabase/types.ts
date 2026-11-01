@@ -20,6 +20,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           date: string
+          doctor_id: string | null
           id: string
           image_urls: string[] | null
           images: Json | null
@@ -36,6 +37,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date: string
+          doctor_id?: string | null
           id?: string
           image_urls?: string[] | null
           images?: Json | null
@@ -52,6 +54,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date?: string
+          doctor_id?: string | null
           id?: string
           image_urls?: string[] | null
           images?: Json | null

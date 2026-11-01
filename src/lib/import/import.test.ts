@@ -4,7 +4,7 @@ import { Blob as NodeBlob } from 'buffer';
 import { listZipEntries, readZipEntry } from './zipReader';
 import { docxToText, parseReportText, parseFileName, looksLikeAppBackup, matchPatients, sha256Hex } from './studyParser';
 
-const blob = (f: string) => new NodeBlob([readFileSync(`src/lib/import/__fixtures__/${f}`)]);
+const blob = (f: string) => new NodeBlob([readFileSync(`src/lib/import/__fixtures__/${f}`)]) as unknown as Blob;
 
 describe('importador', () => {
   it('lista y extrae un zip con carpetas y compresión', async () => {
@@ -22,7 +22,7 @@ describe('importador', () => {
   it('lee el .docx dentro del zip y extrae paciente/fecha/estudio', async () => {
     const b = blob('carpeta.zip');
     const e = (await listZipEntries(b)).find((x) => x.name.endsWith('.docx'))!;
-    const docBlob = new NodeBlob([await readZipEntry(b, e)]);
+    const docBlob = new NodeBlob([await readZipEntry(b, e)]) as unknown as Blob;
     const text = await docxToText(docBlob);
     const p = parseReportText(text)!;
     expect(p.paciente).toBe('PEREZ JUAN CARLOS');

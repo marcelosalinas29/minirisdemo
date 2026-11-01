@@ -82,7 +82,7 @@ const ImportStudiesPage = () => {
           const entries = await listZipEntries(f);
           for (const e of entries) {
             if (e.name.endsWith('/') || /(^|\/)(__MACOSX|\.)|(^|\/)~\$/.test(e.name) || !ALLOWED.test(e.name)) continue;
-            raw.push({ fileName: e.name, getBlob: async () => new Blob([await readZipEntry(f, e)]) });
+            raw.push({ fileName: e.name, getBlob: async () => new Blob([await readZipEntry(f, e) as BlobPart]) });
           }
         } else if (ALLOWED.test(f.name)) {
           raw.push({ fileName: f.name, getBlob: async () => f });
