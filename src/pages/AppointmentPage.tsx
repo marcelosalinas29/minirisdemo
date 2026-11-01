@@ -115,6 +115,14 @@ const AppointmentPage = () => {
       setDetailLoading(true);
       setReportLoadedFromDb(false);
       fetchAppointmentDetail(id)
+        .then(() => {
+          // Registro de quién vio el estudio (no bloquea ni avisa si falla)
+          if (user && !isViewer) {
+            const patientId = useClinicStore.getState().appointments.find((a) => a.id === id)?.patientId ?? null;
+            (supabase as any).from('audit_log').insert({ user_id: user.id, action: 'view', entity: 'appointments', entity_id: id, patient_id: patientId, details: {} })
+              .then(({ error }: any) => { if (error) console.warn('audit view:', error.message); });
+          }
+        })
         .catch((error) => {
           console.error('Error loading appointment detail:', error);
         })

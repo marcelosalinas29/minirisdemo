@@ -183,6 +183,11 @@ const ProfilePage = () => {
             )}
 
             {isAdmin && (
+              <Button variant="outline" className="w-full" onClick={() => navigate('/auditoria')}>
+                Registro de actividad
+              </Button>
+            )}
+            {isAdmin && (
               <Button variant="outline" className="w-full" onClick={() => navigate('/admin-users')}>
                 <ShieldCheck className="w-4 h-4 mr-2" />
                 Administrar usuarios
