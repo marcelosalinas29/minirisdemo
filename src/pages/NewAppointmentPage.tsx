@@ -110,6 +110,13 @@ const NewAppointmentPage = () => {
     }
   }, [dni, selectedPatientId, dniMaterno, findPatientByDni]);
 
+  // Busca solo apenas se termina de escribir el DNI (sin tener que salir del casillero)
+  useEffect(() => {
+    if (selectedPatientId || dniMaterno || cleanDniInput(dni).length < 7) return;
+    const t = setTimeout(() => { handleDniBlur(); }, 500);
+    return () => clearTimeout(t);
+  }, [dni, selectedPatientId, dniMaterno, handleDniBlur]);
+
   const toggleStudy = (study: string) => {
     setSelectedStudies(prev =>
       prev.includes(study) ? prev.filter(s => s !== study) : [...prev, study]

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useClinicStore } from '@/store/useClinicStore';
@@ -31,7 +31,33 @@ const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Prop
   const [saving, setSaving] = useState(false);
   const [showStudySelector, setShowStudySelector] = useState(false);
 
-  const lookupDni = async () => {
+  // Completa todos los datos a partir de un paciente ya cargado
+  const fillFromPatient = (p: { id: string; name: string; dni?: string; dniMaterno?: boolean; phone?: string; obraSocial?: string; fechaNacimiento?: string }) => {
+    setPatientId(p.id);
+    setApellido(p.name); // nombre completo tal cual está cargado
+    setNombres('');
+    setDni(cleanDniInput(p.dni || ''));
+    setDniMaterno(!!p.dniMaterno);
+    setPhone(p.phone || PHONE_DEFAULT_PREFIX);
+    setObraSocial(p.obraSocial || '');
+    setFechaNacimiento(p.fechaNacimiento || '');
+  };
+
+  const suggestions = !patientId && name.length >= 2 ? store.searchPatients(name).slice(0, 5) : [];
+  useEffect(() => {
+    if (patientId || name.trim().length < 2) return;
+    const t = setTimeout(() => { store.searchPatientsRemote(name); }, 350);
+    return () => clearTimeout(t);
+  }, [name, patientId]);
+
+  // Búsqueda automática por DNI apenas se termina de escribir (sin tener que salir del casillero)
+  useEffect(() => {
+    if (patientId || dniMaterno || cleanDniInput(dni).length < 7) return;
+    const t = setTimeout(() => { lookupDni(true); }, 500);
+    return () => clearTimeout(t);
+  }, [dni, patientId, dniMaterno]);
+
+  const lookupDni = async (auto = false) => {
     if (!dni.trim() || dniMaterno) return;
     const p = await store.findPatientByDni(dni);
     if (p) {
@@ -44,7 +70,7 @@ const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Prop
       toast.success('Paciente encontrado');
     } else {
       setPatientId(null);
-      toast.info('Paciente no registrado, complete los datos');
+      if (!auto) toast.info('Paciente no registrado, complete los datos');
     }
   };
 
@@ -156,11 +182,11 @@ const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Prop
 
   return (
     <>
-      <td className="p-1 border border-border">
+      <td className="p-1 border border-border relative">
         <div className="flex gap-0.5">
           <Input
             value={apellido}
-            onChange={(e) => setApellido(e.target.value.toUpperCase())}
+            onChange={(e) => { setApellido(e.target.value.toUpperCase()); if (patientId) setPatientId(null); }}
             placeholder="Apellido"
             className="h-6 text-xs uppercase"
             onKeyDown={handleKeyDown}
@@ -168,12 +194,23 @@ const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Prop
           />
           <Input
             value={nombres}
-            onChange={(e) => setNombres(e.target.value.toUpperCase())}
+            onChange={(e) => { setNombres(e.target.value.toUpperCase()); if (patientId) setPatientId(null); }}
             placeholder="Nombres"
             className="h-6 text-xs uppercase"
             onKeyDown={handleKeyDown}
           />
         </div>
+        {suggestions.length > 0 && (
+          <div className="absolute left-0 top-full z-40 w-72 bg-card border border-border rounded-md shadow-lg">
+            {suggestions.map((p) => (
+              <button key={p.id} type="button" className="w-full text-left text-xs px-2 py-1.5 hover:bg-muted/60 border-b border-border last:border-0"
+                onMouseDown={(e) => e.preventDefault()} onClick={() => fillFromPatient(p)}>
+                <span className="font-semibold">{p.name}</span>
+                <span className="text-muted-foreground">{p.dni ? ` · DNI ${p.dni}` : ''}{p.fechaNacimiento ? ` · ${p.fechaNacimiento.split('-').reverse().join('/')}` : ''}</span>
+              </button>
+            ))}
+          </div>
+        )}
       </td>
       <td className="p-1 border border-border">
         <div className="flex items-center gap-0.5">
@@ -195,8 +232,8 @@ const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Prop
         <div className="flex items-center gap-0.5">
           <Input
             value={dni}
-            onChange={(e) => setDni(cleanDniInput(e.target.value))}
-            onBlur={lookupDni}
+            onChange={(e) => { setDni(cleanDniInput(e.target.value)); if (patientId) setPatientId(null); }}
+            onBlur={() => lookupDni()}
             placeholder="DNI"
             className="h-6 text-xs w-20"
             onKeyDown={handleKeyDown}
@@ -204,7 +241,7 @@ const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Prop
           <label className="flex items-center gap-0.5 text-[10px] shrink-0" title="Recién nacido: usa el DNI de la madre">
             <input type="checkbox" checked={dniMaterno} onChange={(e) => { setDniMaterno(e.target.checked); if (e.target.checked) setPatientId(null); }} />RN
           </label>
-          <Button variant="ghost" size="sm" className="h-5 w-5 p-0 shrink-0" onClick={lookupDni} title="Buscar por DNI">
+          <Button variant="ghost" size="sm" className="h-5 w-5 p-0 shrink-0" onClick={() => lookupDni()} title="Buscar por DNI">
             <Search className="w-3 h-3" />
           </Button>
         </div>
