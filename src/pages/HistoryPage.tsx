@@ -70,6 +70,8 @@ const HistoryPage = () => {
           </Button>
         </div>
 
+        <button onClick={() => navigate('/importar')} className="text-sm text-primary underline">Importar estudios previos (Word, PDF, fotos)</button>
+
         {results && (
           <div className="space-y-2">
             <p className="text-sm text-muted-foreground">{results.length} estudio(s) encontrado(s)</p>

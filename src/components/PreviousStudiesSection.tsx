@@ -15,7 +15,7 @@ const db = supabase as any;
 interface PreviousStudy {
   id: string;
   patient_id: string;
-  fecha: string;
+  fecha: string | null;
   tipo: string;
   origen: 'propio' | 'externo';
   archivo_path: string;
@@ -111,7 +111,7 @@ const PreviousStudiesSection = ({ patientIds, primaryPatientId, canEdit }: Props
     window.open(data.signedUrl, '_blank', 'noopener');
   };
 
-  const fmt = (d: string) => { const [y, m, day] = d.split('-').map(Number); return format(new Date(y, m - 1, day), "d 'de' MMMM yyyy", { locale: es }); };
+  const fmt = (d: string | null) => { if (!d) return 'sin fecha'; const [y, m, day] = d.split('-').map(Number); return format(new Date(y, m - 1, day), "d 'de' MMMM yyyy", { locale: es }); };
 
   return (
     <div className="space-y-2 border-t border-border pt-3 mt-3">
