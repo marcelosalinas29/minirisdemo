@@ -43,6 +43,13 @@
       "when": 1793503057127,
       "tag": "0005_appointments_add_doctor_id",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793505701639,
+      "tag": "0006_protect_report_edit_trigger",
+      "breakpoints": true
     }
   ]
 }
