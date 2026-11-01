@@ -183,6 +183,11 @@ const ProfilePage = () => {
             )}
 
             {isAdmin && (
+              <Button variant="outline" className="w-full" onClick={() => navigate('/respaldo')}>
+                Respaldo de datos y archivos
+              </Button>
+            )}
+            {isAdmin && (
               <Button variant="outline" className="w-full" onClick={() => navigate('/auditoria')}>
                 Registro de actividad
               </Button>
