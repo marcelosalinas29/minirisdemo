@@ -8,6 +8,8 @@ import { calcularEdad, STATUS_LABELS, formatStudyType, normalizeDni } from '@/ty
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FileText, Calendar, Loader2 } from 'lucide-react';
+import PreviousStudiesSection from '@/components/PreviousStudiesSection';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface PatientHistoryModalProps {
   patientId: string;
@@ -28,6 +30,8 @@ const PatientHistoryModal = ({ patientId, patientDni, patientName, open, onOpenC
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [historyIds, setHistoryIds] = useState<string[]>([patientId]);
+  const { isViewer } = useAuth();
 
   useEffect(() => {
     if (!open) return;
@@ -51,6 +55,7 @@ const PatientHistoryModal = ({ patientId, patientDni, patientName, open, onOpenC
         ]));
       }
 
+      if (!cancelled) setHistoryIds(patientIds);
       const { data } = await supabase
         .from('appointments')
         .select('id, patient_id, study_type, status, date, time, observations, reported_by, asistio, created_at, patients(*)')
@@ -105,7 +110,7 @@ const PatientHistoryModal = ({ patientId, patientDni, patientName, open, onOpenC
           </div>
         ) : appointments.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">
-            Sin estudios previos
+            Sin estudios hechos en el sistema
           </p>
         ) : (
           <div className="space-y-2">
@@ -130,6 +135,7 @@ const PatientHistoryModal = ({ patientId, patientDni, patientName, open, onOpenC
             ))}
           </div>
         )}
+        <PreviousStudiesSection patientIds={historyIds} primaryPatientId={patientId} canEdit={!isViewer} />
       </DialogContent>
     </Dialog>
   );

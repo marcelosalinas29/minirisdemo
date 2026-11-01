@@ -7,11 +7,13 @@ import AppLayout from '@/components/AppLayout';
 import { useClinicStore } from '@/store/useClinicStore';
 import { STATUS_LABELS, calcularEdadDetallada } from '@/types/medical';
 import { Input } from '@/components/ui/input';
+import PatientHistoryModal from '@/components/PatientHistoryModal';
 
 const PatientsPage = () => {
   const [query, setQuery] = useState('');
   const { searchPatients, patients, getPatientAppointments, fetchPatients, fetchAppointments, searchPatientsRemote } = useClinicStore();
   const navigate = useNavigate();
+  const [historyPatient, setHistoryPatient] = useState<{ id: string; dni: string; name: string } | null>(null);
 
   useEffect(() => {
     fetchPatients();
@@ -69,7 +71,10 @@ const PatientsPage = () => {
                         <span className="text-primary">{displayPhone}</span>
                       </p>
                     </div>
-                    <span className="text-xs text-muted-foreground">{appointments.length} estudio(s)</span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="text-xs text-muted-foreground">{appointments.length} estudio(s)</span>
+                      <button onClick={() => setHistoryPatient({ id: patient.id, dni: patient.dni, name: patient.name })} className="text-xs text-primary underline">Historial y estudios previos</button>
+                    </div>
                   </div>
                   {appointments.length > 0 && (
                     <div className="space-y-1 mt-2">
@@ -101,6 +106,15 @@ const PatientsPage = () => {
           </div>
         )}
       </div>
+      {historyPatient && (
+        <PatientHistoryModal
+          patientId={historyPatient.id}
+          patientDni={historyPatient.dni}
+          patientName={historyPatient.name}
+          open={!!historyPatient}
+          onOpenChange={(o) => { if (!o) setHistoryPatient(null); }}
+        />
+      )}
     </AppLayout>
   );
 };
