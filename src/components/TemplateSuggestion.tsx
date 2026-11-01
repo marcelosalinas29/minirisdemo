@@ -14,6 +14,7 @@ interface Props {
 /** Al abrir un estudio sin informe: propone la plantilla del tipo de estudio, pidiendo confirmación. */
 const TemplateSuggestion = ({ open, onOpenChange, studyType, onApply, onChooseOther }: Props) => {
   const options = suggestTemplates(studyType);
+  const withoutTemplate = studyType.split(' + ').map((s) => s.trim()).filter((s) => s && suggestTemplates(s).length === 0);
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
@@ -22,6 +23,9 @@ const TemplateSuggestion = ({ open, onOpenChange, studyType, onApply, onChooseOt
           <DialogDescription>Estudio: {studyType}</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
+          {withoutTemplate.length > 0 && (
+            <p className="text-xs text-amber-700">Sin plantilla (se escribe a mano): {withoutTemplate.join(', ')}</p>
+          )}
           {options.length > 1 && (
             <Button className="w-full justify-start" onClick={() => { onApply(options.map((t) => textToHtml(t.content)).join('<p></p>')); onOpenChange(false); }}>
               Usar todas ({options.length})

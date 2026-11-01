@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { STUDY_TYPES } from '@/types/medical';
+import { suggestTemplates } from '@/data/studyTemplateMap';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -100,6 +101,9 @@ const StudyTypeSelector = ({ open, onOpenChange, onApply, currentValue }: StudyT
               <p className="text-sm font-medium">
                 {[...selected, ...(customText.trim() ? [customText.trim()] : [])].join(' + ')}
               </p>
+              {customText.trim() && suggestTemplates(customText.trim()).length === 0 && (
+                <p className="text-xs text-amber-700 mt-2">Este estudio escrito a mano no tiene plantilla: el informe se escribe desde cero.</p>
+              )}
             </div>
           )}
         </div>

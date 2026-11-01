@@ -63,13 +63,12 @@ export function getPatientHistoryKey(patient: Pick<Patient, 'id' | 'dni' | 'dniM
 
 export const STUDY_TYPES: string[] = [
   'Ecografía Abdominal',
+  'Ecografía Hepatobiliopancreática (Abdomen Superior)',
   'Ecografía Tiroidea',
   'Ecografía Obstétrica',
   'Ecografía Pélvica',
   'Ecografía Renal',
-  'Ecografía de Tejidos Blandos',
   'Ecografía Mamaria',
-  'Ecografía Doppler',
   'Ecografía Vesical',
   'Ecografía Prostática',
   'Ecografía Vesical y Prostática',
@@ -80,8 +79,6 @@ export const STUDY_TYPES: string[] = [
   'Ecografía de Partes Blandas',
   'Ecografía Muscular',
   'Ecografía Articular',
-  'Ecografía Doppler Venoso',
-  'Ecografía Doppler Arterial',
   'Ecografía Doppler de Vasos de Cuello',
   'Ecografía Mamaria y Ginecológica TV',
   'Ecografía Renal y Vesicoprostática',
@@ -97,7 +94,8 @@ export const STUDY_TYPES: string[] = [
   'Eco Doppler TSA',
   'Eco Doppler Sustancia Nigra',
   'Eco Doppler Arterial MMII',
-  'Eco Doppler Venoso MMII',
+  'Eco Doppler Venoso MMII (TVP)',
+  'Eco Doppler Venoso MMII (Insuficiencia / Mapeo)',
   'Eco Doppler Arterial MMSS',
   'Test de Función Endotelial',
 ];

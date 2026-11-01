@@ -3,6 +3,7 @@ import { REPORT_TEMPLATES } from '@/data/reportTemplates';
 /** Tipo de estudio -> nombres de plantillas candidatas. Solo relaciones claras; el médico siempre confirma. */
 const MAP: Record<string, string[]> = {
   'Ecografía Abdominal': ['Ecografía Abdominal'],
+  'Ecografía Hepatobiliopancreática (Abdomen Superior)': ['Ecografía Hepatobiliopancreática'],
   'Ecografía Renal': ['Ecografía Renal'],
   'Ecografía Renal y Vesicoprostática': ['Renal y Vesicoprostática'],
   'Ecografía Tiroidea': ['Ecografía Tiroidea'],
@@ -29,6 +30,8 @@ const MAP: Record<string, string[]> = {
   'Eco Doppler Arterial MMII': ['Doppler Arterial MMII'],
   'Eco Doppler Arterial MMSS': ['Doppler Arterial MMSS'],
   'Eco Doppler Venoso MMII': ['Doppler Venoso MMII (Completo)', 'Doppler Venoso MMII (TVP)', 'MIV (Mapeo Insuf. Venosa)'],
+  'Eco Doppler Venoso MMII (TVP)': ['Doppler Venoso MMII (TVP)'],
+  'Eco Doppler Venoso MMII (Insuficiencia / Mapeo)': ['Doppler Venoso MMII (Insuficiencia / Mapeo)', 'MIV (Mapeo Insuf. Venosa)'],
   'Test de Función Endotelial': ['Test Función Endotelial'],
 };
 

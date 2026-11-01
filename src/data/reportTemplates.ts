@@ -257,6 +257,42 @@ Vena safena parva: ostium de calibre conservado y continente.
 No se observan venas perforantes insuficientes a destacar.`,
   },
   {
+    name: 'Doppler Venoso MMII (Insuficiencia / Mapeo)',
+    content: `Estudio realizado en bipedestación, con maniobras de compresión distal/Valsalva.
+
+SISTEMA VENOSO PROFUNDO (ambos miembros)
+Venas femoral común, femoral, poplítea, tibiales posteriores y peroneas: permeables, compresibles, con flujo espontáneo y variación respiratoria. Sin signos de trombosis. Sin reflujo patológico (>1 s).
+
+SISTEMA VENOSO SUPERFICIAL
+MIEMBRO INFERIOR DERECHO
+Unión safeno-femoral: válvula terminal [continente / incompetente].
+Safena magna: diámetro en muslo proximal __ mm, medio __ mm, pierna __ mm. Reflujo: [ausente / presente, __ s, hasta __].
+Unión safeno-poplítea y safena parva: diámetro __ mm. Reflujo: [ausente / presente, __ s].
+Venas safenas accesorias / colaterales: [sin particularidades / dilatadas con reflujo].
+Venas perforantes: [sin incompetentes / incompetente en __, diámetro __ mm, reflujo __ s].
+
+MIEMBRO INFERIOR IZQUIERDO
+Unión safeno-femoral: válvula terminal [continente / incompetente].
+Safena magna: diámetro en muslo proximal __ mm, medio __ mm, pierna __ mm. Reflujo: [ausente / presente, __ s, hasta __].
+Unión safeno-poplítea y safena parva: diámetro __ mm. Reflujo: [ausente / presente, __ s].
+Venas safenas accesorias / colaterales: [sin particularidades / dilatadas con reflujo].
+Venas perforantes: [sin incompetentes / incompetente en __, diámetro __ mm, reflujo __ s].
+
+CONCLUSION:
+Sistema venoso profundo permeable y competente en ambos miembros inferiores.
+Insuficiencia venosa superficial [ausente / en territorio de safena magna / safena parva / colaterales] [derecha / izquierda / bilateral].
+Se sugiere correlación clínica (clasificación CEAP).`,
+  },
+  {
+    name: 'Ecografía Hepatobiliopancreática',
+    content: `Hígado: de forma, tamaño y ecoestructura conservados, sin lesiones focales en los segmentos explorados.
+Vía biliar: intra y extrahepática no dilatadas. Colédoco: __ mm.
+Vesícula: de paredes finas y contenido líquido homogéneo. Alitiásica.
+Páncreas: parénquima homogéneo, sin imágenes a destacar en los segmentos visualizados.
+Vena porta: calibre y flujo conservados.
+No se observa líquido libre en cavidad.`,
+  },
+  {
     name: 'Doppler Arterial MMII',
     content: `LADO DERECHO:
 Arteria femoral común: permeable con espectro trifásico.
