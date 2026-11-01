@@ -145,6 +145,16 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
     return map;
   }, [appointments]);
 
+  // Todos los turnos de cada hora (si hay más de uno, el segundo en adelante es sobreturno y también se muestra)
+  const appointmentsBySlot = useMemo(() => {
+    const map = new Map<string, Appointment[]>();
+    for (const a of appointments) {
+      const list = map.get(a.time);
+      if (list) list.push(a); else map.set(a.time, [a]);
+    }
+    return map;
+  }, [appointments]);
+
   const timeSlots = useMemo(() => {
     const baseSlots = doctorSlots && doctorSlots.length > 0 ? doctorSlots : DEFAULT_TIME_SLOTS;
     const slotSet = new Set(baseSlots);
@@ -173,7 +183,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
     return blocked;
   }, [appointments, timeSlots, appointmentMap]);
 
-  const occupiedCount = appointmentMap.size;
+  const occupiedCount = appointments.length;
 
 
   const startEdit = (apt: Appointment) => {
@@ -239,6 +249,16 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
     }
   };
 
+  const timeRows = useMemo(() => {
+    const rows: { slot: string; apt: Appointment | undefined; extra: boolean }[] = [];
+    for (const slot of timeSlots) {
+      const list = appointmentsBySlot.get(slot);
+      if (!list || list.length === 0) rows.push({ slot, apt: undefined, extra: false });
+      else list.forEach((a, i) => rows.push({ slot, apt: a, extra: i > 0 }));
+    }
+    return rows;
+  }, [timeSlots, appointmentsBySlot]);
+
   const openReschedule = (apt: Appointment) => {
     setRescheduleTarget(apt);
     setRescheduleDate(selectedDate);
@@ -273,21 +293,20 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
             </tr>
           </thead>
           <tbody>
-            {timeSlots.map((slot, idx) => {
-              const apt = appointmentMap.get(slot);
+            {timeRows.map(({ slot, apt, extra }, idx) => {
               const isOccupied = !!apt;
               const isEditing = apt && editingId === apt.id;
               const hasHistory = apt && patientsWithHistory?.has(getPatientHistoryKey(apt.patient));
               const overbook = isOverbook(slot);
 
-              const prevSlot = idx > 0 ? timeSlots[idx - 1] : null;
+              const prevSlot = idx > 0 ? timeRows[idx - 1].slot : null;
               const slotHour = parseInt(slot.split(':')[0]);
               const prevHour = prevSlot ? parseInt(prevSlot.split(':')[0]) : null;
-              const showMorningSep = slot === '08:00' || (idx === 0 && slotHour < 13);
+              const showMorningSep = !extra && (slot === '08:00' || (idx === 0 && slotHour < 13));
               const showAfternoonSep = prevHour !== null && prevHour < 13 && slotHour >= 13;
 
               return (
-                <React.Fragment key={`slot-${slot}`}>
+                <React.Fragment key={`slot-${slot}-${apt?.id ?? 'libre'}`}>
                   {showMorningSep && (
                     <tr key="morning-sep">
                       <td colSpan={10} className="py-1.5 px-2 bg-primary/10 text-center text-[11px] text-primary font-bold border border-border border-t-2 border-t-primary/40 tracking-widest">
@@ -303,12 +322,13 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                     </tr>
                   )}
                   <tr
-                    key={slot}
-                    className={`transition-colors ${apt?.asistio ? 'bg-green-100 dark:bg-green-900/30' : overbook ? 'bg-accent/30 border-l-2 border-l-accent' : isOccupied ? 'bg-card hover:bg-muted/30' : 'opacity-50 hover:opacity-80 hover:bg-muted/20'}`}
+                    key={`row-${slot}-${apt?.id ?? 'libre'}`}
+                    className={`transition-colors ${apt?.asistio ? 'bg-green-100 dark:bg-green-900/30' : extra ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-l-amber-500' : overbook ? 'bg-accent/30 border-l-2 border-l-accent' : isOccupied ? 'bg-card hover:bg-muted/30' : 'opacity-50 hover:opacity-80 hover:bg-muted/20'}`}
                   >
                     <td className="p-1.5 border border-border font-mono text-center text-muted-foreground font-semibold">
                       {slot}
                       {overbook && <span className="ml-1 text-[9px] text-accent-foreground font-bold">ST</span>}
+                      {extra && <span className="ml-1 text-[9px] text-amber-700 font-bold" title="Sobreturno: ya hay otro turno a esta hora">SOB</span>}
                     </td>
 
                     {isOccupied && apt ? (

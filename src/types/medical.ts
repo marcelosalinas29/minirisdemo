@@ -40,6 +40,21 @@ export function cleanDniInput(value: string): string {
   return value.toUpperCase().replace(/[\s.\-_/]/g, '');
 }
 
+/** Teléfono: característica por defecto de Argentina (celular), modificable. */
+export const PHONE_DEFAULT_PREFIX = '+549';
+export function cleanPhoneInput(value: string): string {
+  return value.replace(/[\s.\-()]/g, '');
+}
+/** Hay un número real si, además de la característica, quedan más de 4 dígitos. */
+export function hasPhoneNumber(value: string): boolean {
+  return value.replace(/\D/g, '').length > 6;
+}
+/** Qué se guarda: vacío si solo quedó la característica por defecto. */
+export function phoneToSave(value: string): string {
+  const v = cleanPhoneInput(value);
+  return hasPhoneNumber(v) ? v : '';
+}
+
 /** Arma el nombre completo: primero apellido, después nombres. */
 export function composePatientName(apellido: string, nombres: string): string {
   return `${apellido.trim()} ${nombres.trim()}`.replace(/\s+/g, ' ').trim();

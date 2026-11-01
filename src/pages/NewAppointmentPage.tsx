@@ -5,7 +5,7 @@ import { es } from 'date-fns/locale';
 import AppLayout from '@/components/AppLayout';
 import { useClinicStore } from '@/store/useClinicStore';
 import { useScheduleStore } from '@/store/useScheduleStore';
-import { STUDY_TYPES, DNI_TIPOS, cleanDniInput, composePatientName, calcularEdad, calcularEdadDetallada, getStudyDuration } from '@/types/medical';
+import { STUDY_TYPES, DNI_TIPOS, cleanDniInput, composePatientName, calcularEdad, calcularEdadDetallada, getStudyDuration, PHONE_DEFAULT_PREFIX, cleanPhoneInput, hasPhoneNumber, phoneToSave } from '@/types/medical';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,7 +30,7 @@ const NewAppointmentPage = () => {
   const [nombres, setNombres] = useState('');
   const name = composePatientName(apellido, nombres);
   const [fechaNacimiento, setFechaNacimiento] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(PHONE_DEFAULT_PREFIX);
   const [obraSocial, setObraSocial] = useState('');
   const [selectedStudies, setSelectedStudies] = useState<string[]>([]);
   const [customStudy, setCustomStudy] = useState('');
@@ -90,7 +90,7 @@ const NewAppointmentPage = () => {
     setDniTipo(p.dniTipo || 'DNI');
     setDniMaterno(!!p.dniMaterno);
     setFechaNacimiento(p.fechaNacimiento || '');
-    setPhone(p.phone);
+    setPhone(p.phone || PHONE_DEFAULT_PREFIX);
     setObraSocial(p.obraSocial || '');
   };
 
@@ -169,7 +169,7 @@ const NewAppointmentPage = () => {
       toast.error('El documento es obligatorio (en recién nacidos, el de la madre)');
       return;
     }
-    if (!apellido.trim() || (!selectedPatientId && !nombres.trim()) || !phone || !finalTime || !studyType) {
+    if (!apellido.trim() || (!selectedPatientId && !nombres.trim()) || !hasPhoneNumber(phone) || !finalTime || !studyType) {
       toast.error('Por favor complete todos los campos obligatorios');
       return;
     }
@@ -217,7 +217,7 @@ const NewAppointmentPage = () => {
           dniTipo,
           dniMaterno,
           name,
-          phone,
+          phone: phoneToSave(phone),
           fechaNacimiento,
           obraSocial,
         });
@@ -261,7 +261,7 @@ const NewAppointmentPage = () => {
           />
           {lookingUp && <p className="text-xs text-muted-foreground">Buscando paciente...</p>}
           <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={dniMaterno} onChange={(e) => { setDniMaterno(e.target.checked); if (selectedPatientId) { setApellido(''); setNombres(''); setPhone(''); setFechaNacimiento(''); } setSelectedPatientId(null); }} />
+            <input type="checkbox" checked={dniMaterno} onChange={(e) => { setDniMaterno(e.target.checked); if (selectedPatientId) { setApellido(''); setNombres(''); setPhone(PHONE_DEFAULT_PREFIX); setFechaNacimiento(''); } setSelectedPatientId(null); }} />
             Recién nacido: usa el documento de la madre
           </label>
         </div>
@@ -321,7 +321,7 @@ const NewAppointmentPage = () => {
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <Label>Teléfono *</Label>
-            <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+54..." />
+            <Input value={phone} onChange={(e) => setPhone(cleanPhoneInput(e.target.value))} placeholder="+549 característica y número" />
           </div>
           <div className="space-y-2">
             <Label>Obra Social</Label>

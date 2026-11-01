@@ -5,7 +5,7 @@ import { useClinicStore } from '@/store/useClinicStore';
 import { toast } from 'sonner';
 import { Check, X, Search, FileText } from 'lucide-react';
 import StudyTypeSelector from '@/components/StudyTypeSelector';
-import { calcularEdadDetallada, getStudyDuration, cleanDniInput, composePatientName, normalizeDni } from '@/types/medical';
+import { calcularEdadDetallada, getStudyDuration, cleanDniInput, composePatientName, normalizeDni, PHONE_DEFAULT_PREFIX, cleanPhoneInput, phoneToSave } from '@/types/medical';
 
 interface Props {
   slot: string;
@@ -21,7 +21,7 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
   const [apellido, setApellido] = useState('');
   const [nombres, setNombres] = useState('');
   const name = composePatientName(apellido, nombres);
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState(PHONE_DEFAULT_PREFIX);
   const [obraSocial, setObraSocial] = useState('');
   const [fechaNacimiento, setFechaNacimiento] = useState('');
   const [studyType, setStudyType] = useState('');
@@ -37,7 +37,7 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
       setPatientId(p.id);
       setApellido(p.name); // paciente existente: nombre completo tal cual está cargado
       setNombres('');
-      setPhone(p.phone);
+      setPhone(p.phone || PHONE_DEFAULT_PREFIX);
       setObraSocial(p.obraSocial || '');
       setFechaNacimiento(p.fechaNacimiento || '');
       toast.success('Paciente encontrado');
@@ -119,7 +119,7 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
           dniTipo: /[A-Z]/.test(cleanDniInput(dni)) ? 'OTRO' : 'DNI',
           dniMaterno,
           name: name.trim(),
-          phone,
+          phone: phoneToSave(phone),
           obraSocial,
           fechaNacimiento: fechaNacimiento || undefined,
         });
@@ -225,7 +225,7 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
       <td className="p-1 border border-border">
         <Input
           value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          onChange={(e) => setPhone(cleanPhoneInput(e.target.value))}
           placeholder="Tel"
           className="h-6 text-xs"
           onKeyDown={handleKeyDown}
