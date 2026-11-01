@@ -442,6 +442,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      consultor_search: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_query?: string
+          p_study?: string
+        }
+        Returns: {
+          appointment_id: string
+          dni: string
+          patient_id: string
+          patient_name: string
+          status: string
+          study_date: string
+          study_type: string
+        }[]
+      }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
