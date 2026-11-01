@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, Users, PlusCircle, LogOut, Search, X, MessageSquare } from 'lucide-react';
+import { Calendar, Users, PlusCircle, LogOut, Search, X, MessageSquare, History } from 'lucide-react';
 import clinicLogo from '@/assets/clinic-logo.png';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicStore } from '@/store/useClinicStore';
@@ -17,6 +17,7 @@ interface AppLayoutProps {
 const allNavItems = [
   { path: '/', icon: Calendar, label: 'Citas' },
   { path: '/patients', icon: Users, label: 'Pacientes' },
+  { path: '/historial', icon: History, label: 'Historial' },
   { path: '/new', icon: PlusCircle, label: 'Nueva' },
 ];
 

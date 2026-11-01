@@ -38,7 +38,11 @@ interface ClinicStore {
   getAppointment: (id: string) => Appointment | undefined;
   getPatient: (id: string) => Patient | undefined;
   findPatientByDni: (dni: string) => Promise<Patient | null>;
+  fetchAppointmentsRange: (opts: { from?: string; to?: string; patientIds?: string[] }) => Promise<Appointment[]>;
 }
+
+const APPOINTMENTS_WINDOW_DAYS = 180;
+const APPOINTMENT_LIST_COLUMNS = 'id, patient_id, study_type, status, date, time, observations, reported_by, asistio, created_at, created_by, patients(*)';
 
 function mapPatient(p: any): Patient {
   return {
@@ -125,18 +129,35 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
       return;
     }
     set({ loading: true });
-    const ninetyDaysAgo = new Date();
-    ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
-    const dateFilter = ninetyDaysAgo.toISOString().split('T')[0];
+    // Últimos 6 meses. El servidor entrega como máximo 1000 filas por consulta: se pide por páginas.
+    const since = new Date();
+    since.setDate(since.getDate() - APPOINTMENTS_WINDOW_DAYS);
+    const dateFilter = since.toISOString().split('T')[0];
     const existingAppointments = new Map(get().appointments.map((appointment) => [appointment.id, appointment]));
-    const { data } = await supabase
-      .from('appointments')
-      .select('id, patient_id, study_type, status, date, time, observations, reported_by, asistio, created_at, created_by, patients(*)')
-      .gte('date', dateFilter)
-      .order('created_at', { ascending: false });
-    if (data) {
+    const PAGE = 1000;
+    const all: any[] = [];
+    let failed = false;
+    for (let page = 0; page < 20; page++) {
+      const from = page * PAGE;
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(APPOINTMENT_LIST_COLUMNS)
+        .gte('date', dateFilter)
+        .order('created_at', { ascending: false })
+        .order('id')
+        .range(from, from + PAGE - 1);
+      if (error) {
+        console.error('Error loading appointments:', error);
+        failed = true;
+        break;
+      }
+      if (!data || data.length === 0) break;
+      all.push(...data);
+      if (data.length < PAGE) break;
+    }
+    if (!failed) {
       set({
-        appointments: data.map((a: any) => {
+        appointments: all.map((a: any) => {
           const existing = existingAppointments.get(a.id);
           return mapAppointment({
             ...a,
@@ -331,6 +352,29 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
     get()
       .appointments.filter((a) => a.patientId === patientId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+
+  // Busca turnos en toda la historia (más allá de los 6 meses cargados). No toca la lista
+  // en memoria: devuelve solo lo pedido, sin informe ni imágenes (se cargan al abrir el estudio).
+  fetchAppointmentsRange: async ({ from, to, patientIds }) => {
+    const PAGE = 1000;
+    const out: any[] = [];
+    for (let page = 0; page < 30; page++) {
+      let q = supabase.from('appointments').select(APPOINTMENT_LIST_COLUMNS);
+      if (from) q = q.gte('date', from);
+      if (to) q = q.lte('date', to);
+      if (patientIds && patientIds.length > 0) q = q.in('patient_id', patientIds);
+      const { data, error } = await q
+        .order('date', { ascending: false })
+        .order('time', { ascending: false })
+        .order('id')
+        .range(page * PAGE, page * PAGE + PAGE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      out.push(...data);
+      if (data.length < PAGE) break;
+    }
+    return out.map((a) => mapAppointment({ ...a, report: '', images: [], image_urls: a.image_urls ?? [] }));
+  },
 
   // Búsqueda: primero por DNI (con o sin puntos), después por apellido y nombre
   // sin importar tildes, mayúsculas ni el orden de las palabras.
