@@ -35,6 +35,7 @@ const MAP: Record<string, string[]> = {
   'Eco Doppler Sustancia Nigra': ['Eco Doppler Sustancia Nigra'],
   'Eco Doppler Arterial MMII': ['Doppler Arterial MMII'],
   'Eco Doppler Arterial MMSS': ['Doppler Arterial MMSS'],
+  'Eco Doppler Venoso MMSS': ['Doppler Venoso MMSS'],
   'Eco Doppler Venoso MMII': ['Doppler Venoso MMII (Completo)', 'Doppler Venoso MMII (TVP)', 'MIV (Mapeo Insuf. Venosa)'],
   'Eco Doppler Venoso MMII (TVP)': ['Doppler Venoso MMII (TVP)'],
   'Eco Doppler Venoso MMII (Insuficiencia / Mapeo)': ['Doppler Venoso MMII (Insuficiencia / Mapeo)', 'MIV (Mapeo Insuf. Venosa)'],

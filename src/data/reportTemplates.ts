@@ -383,6 +383,17 @@ CONCLUSION:
 Doppler esplenoportal dentro de parámetros normales.`,
   },
   {
+    name: 'Doppler Venoso MMSS',
+    content: `[BORRADOR - revisar]
+LADO DERECHO:
+Venas yugular interna, subclavia, axilar, braquial, basílica y cefálica: permeables, compresibles, con flujo espontáneo y variación respiratoria.
+
+LADO IZQUIERDO:
+Venas yugular interna, subclavia, axilar, braquial, basílica y cefálica: permeables, compresibles, con flujo espontáneo y variación respiratoria.
+
+CONCLUSION: Sistema venoso profundo y superficial de ambos miembros superiores permeable y compresible. Sin signos de trombosis al momento del estudio.`,
+  },
+  {
     name: 'Doppler Arterial MMSS',
     content: `Arterias subclavia, axilar, braquial, radial y cubital con diámetros conservados, paredes lisas y flujos trifásicos de velocidad normal.
 Arco palmar con buen relleno.

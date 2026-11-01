@@ -118,6 +118,7 @@ export const STUDY_TYPES: string[] = [
   'Eco Doppler Venoso MMII (TVP)',
   'Eco Doppler Venoso MMII (Insuficiencia / Mapeo)',
   'Eco Doppler Arterial MMSS',
+  'Eco Doppler Venoso MMSS',
   'Test de Función Endotelial',
 ];
 
@@ -243,8 +244,20 @@ export function expandStudyName(name: string): string {
   return out.replace(/\s+/g, ' ').trim();
 }
 
+/** El protocolo (TVP, Insuficiencia/Mapeo) solo orienta al médico qué plantilla usar: no va en el título del estudio. */
+export function studyTitle(name: string): string {
+  return expandStudyName(name.replace(/\s*\((TVP|Insuficiencia\s*\/\s*Mapeo)\)/gi, ''));
+}
+
+/** Protocolo entre paréntesis (solo identificativo para el médico), si lo tiene. */
+export function studyProtocol(name: string): string {
+  const m = name.match(/\((TVP|Insuficiencia\s*\/\s*Mapeo)\)/i);
+  if (!m) return '';
+  return m[1].toUpperCase() === 'TVP' ? 'Protocolo: trombosis venosa profunda' : 'Protocolo: insuficiencia venosa / mapeo';
+}
+
 export function formatStudyType(studyType: string): string {
-  const parts = studyType.split(/\s*\+\s*/).map(s => expandStudyName(s)).filter(Boolean);
+  const parts = studyType.split(/\s*\+\s*/).map(s => studyTitle(s)).filter(Boolean);
   if (parts.length <= 1) return parts[0] || studyType.toUpperCase();
   if (parts.length === 2) return `${parts[0]} Y ${parts[1]}`;
   return parts.slice(0, -1).join(', ') + ' Y ' + parts[parts.length - 1];
