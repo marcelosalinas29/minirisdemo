@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
 import type { Appointment, Patient, StudyStatus } from '@/types/medical';
-import { calcularEdad } from '@/types/medical';
+import { calcularEdad, normalizeDni } from '@/types/medical';
 import { trackMutation } from '@/hooks/useRealtimeSync';
 
 let lastPatientsLoad = 0;
@@ -332,14 +332,36 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
       .appointments.filter((a) => a.patientId === patientId)
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
 
+  // Búsqueda: primero por DNI (con o sin puntos), después por apellido y nombre
+  // sin importar tildes, mayúsculas ni el orden de las palabras.
   searchPatients: (query) => {
-    const q = query.toLowerCase();
-    return get().patients.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.phone.includes(q) ||
-        (p.dni && p.dni.includes(q))
-    );
+    const fold = (t: string) => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const q = fold(query).trim();
+    if (!q) return get().patients;
+    const digits = q.replace(/[\s.\-_/]/g, '');
+    const isNumeric = /^\d+$/.test(digits) && digits.length >= 2;
+    const tokens = q.split(/\s+/).filter(Boolean);
+    const scored: { p: Patient; score: number }[] = [];
+    for (const p of get().patients) {
+      const dni = fold(normalizeDni(p.dni));
+      const phone = (p.phone || '').replace(/\D/g, '');
+      const name = fold(p.name);
+      let score = -1;
+      if (isNumeric) {
+        if (dni === digits) score = 0;
+        else if (dni.includes(digits)) score = 1;
+        else if (phone.includes(digits)) score = 3;
+      } else if (dni && dni === q.replace(/[\s.\-_/]/g, '')) {
+        score = 0; // DNI con letras (documento extranjero)
+      }
+      if (score < 0 && !isNumeric && tokens.every((t) => name.includes(t))) {
+        score = name.startsWith(tokens[0]) ? 2 : 4;
+      }
+      if (score >= 0) scored.push({ p, score });
+    }
+    return scored
+      .sort((x, y) => x.score - y.score || x.p.name.localeCompare(y.p.name))
+      .map((x) => x.p);
   },
 
   // Busca directamente en la base y suma los resultados a la lista local,

@@ -34,7 +34,7 @@ const PatientsPage = () => {
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Buscar por nombre o teléfono..."
+            placeholder="Buscar por DNI, apellido y nombre o teléfono..."
             className="pl-9"
           />
         </div>
