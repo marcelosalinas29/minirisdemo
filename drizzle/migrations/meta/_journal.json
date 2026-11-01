@@ -36,6 +36,13 @@
       "when": 1793499245549,
       "tag": "0004_estudios_previos_pendientes",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1793503057127,
+      "tag": "0005_appointments_add_doctor_id",
+      "breakpoints": true
     }
   ]
 }
