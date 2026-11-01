@@ -4,7 +4,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { User, Phone, Calendar, FileText, ImagePlus, Send, Download, Trash2, ChevronDown, Edit2, Save, Pencil, Mic, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { calcularEdad, calcularEdadDetallada, formatEdad } from '@/types/medical';
+import { calcularEdad, calcularEdadDetallada, formatEdad, cleanDniInput } from '@/types/medical';
 import AppLayout from '@/components/AppLayout';
 import { useClinicStore } from '@/store/useClinicStore';
 import { useAuth } from '@/contexts/AuthContext';
@@ -1016,7 +1016,7 @@ const AppointmentPage = () => {
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div>
                 <label className="text-xs text-muted-foreground">DNI</label>
-                <Input value={patientForm.dni} onChange={(e) => setPatientForm(f => ({ ...f, dni: e.target.value }))} className="h-8" placeholder="DNI" />
+                <Input value={patientForm.dni} onChange={(e) => setPatientForm(f => ({ ...f, dni: cleanDniInput(e.target.value) }))} className="h-8" placeholder="DNI" />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Fecha Nac.</label>

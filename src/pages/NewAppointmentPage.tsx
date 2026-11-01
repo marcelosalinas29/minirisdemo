@@ -5,7 +5,7 @@ import { es } from 'date-fns/locale';
 import AppLayout from '@/components/AppLayout';
 import { useClinicStore } from '@/store/useClinicStore';
 import { useScheduleStore } from '@/store/useScheduleStore';
-import { STUDY_TYPES, calcularEdad, calcularEdadDetallada, getStudyDuration } from '@/types/medical';
+import { STUDY_TYPES, cleanDniInput, composePatientName, calcularEdad, calcularEdadDetallada, getStudyDuration } from '@/types/medical';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,7 +24,9 @@ const NewAppointmentPage = () => {
   const { doctors, fetchDoctors, fetchAllSchedules, generateAvailableSlots, schedules, isDateBlocked, fetchBlockedDates, blockedDates } = useScheduleStore();
 
   const [dni, setDni] = useState('');
-  const [name, setName] = useState('');
+  const [apellido, setApellido] = useState('');
+  const [nombres, setNombres] = useState('');
+  const name = composePatientName(apellido, nombres);
   const [fechaNacimiento, setFechaNacimiento] = useState('');
   const [phone, setPhone] = useState('');
   const [obraSocial, setObraSocial] = useState('');
@@ -80,8 +82,9 @@ const NewAppointmentPage = () => {
 
   const selectExistingPatient = (p: typeof patients[0]) => {
     setSelectedPatientId(p.id);
-    setName(p.name);
-    setDni(p.dni || '');
+    setApellido(p.name); // pacientes existentes: nombre completo tal cual está cargado
+    setNombres('');
+    setDni(cleanDniInput(p.dni || ''));
     setFechaNacimiento(p.fechaNacimiento || '');
     setPhone(p.phone);
     setObraSocial(p.obraSocial || '');
@@ -158,7 +161,7 @@ const NewAppointmentPage = () => {
       toast.error('Debe seleccionar el médico al que se asigna la cita');
       return;
     }
-    if (!name || !phone || !finalTime || !studyType) {
+    if (!apellido.trim() || (!selectedPatientId && !nombres.trim()) || !phone || !finalTime || !studyType) {
       toast.error('Por favor complete todos los campos obligatorios');
       return;
     }
@@ -202,7 +205,7 @@ const NewAppointmentPage = () => {
       let patientId = selectedPatientId;
       if (!patientId) {
         const patient = await addPatient({
-          dni: dni.trim(),
+          dni: cleanDniInput(dni),
           name,
           phone,
           fechaNacimiento,
@@ -235,7 +238,7 @@ const NewAppointmentPage = () => {
           <Label>DNI / ID</Label>
           <Input
             value={dni}
-            onChange={(e) => { setDni(e.target.value); setSelectedPatientId(null); }}
+            onChange={(e) => { setDni(cleanDniInput(e.target.value)); setSelectedPatientId(null); }}
             onBlur={handleDniBlur}
             placeholder="Número de documento"
           />
@@ -243,12 +246,19 @@ const NewAppointmentPage = () => {
         </div>
 
         <div className="space-y-2">
-          <Label>Nombre del paciente</Label>
-          <Input
-            value={name}
-            onChange={(e) => { setName(e.target.value); setSelectedPatientId(null); }}
-            placeholder="Nombre completo"
-          />
+          <Label>Apellido y nombres del paciente</Label>
+          <div className="grid grid-cols-2 gap-2">
+            <Input
+              value={apellido}
+              onChange={(e) => { setApellido(e.target.value); setSelectedPatientId(null); }}
+              placeholder="Apellido"
+            />
+            <Input
+              value={nombres}
+              onChange={(e) => { setNombres(e.target.value); setSelectedPatientId(null); }}
+              placeholder="Nombres"
+            />
+          </div>
           {suggestions.length > 0 && (
             <div className="bg-card border border-border rounded-lg shadow-sm overflow-hidden">
               {suggestions.slice(0, 5).map((p) => (

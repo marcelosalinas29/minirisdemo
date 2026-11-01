@@ -5,7 +5,7 @@ import { useClinicStore } from '@/store/useClinicStore';
 import { toast } from 'sonner';
 import { Check, X, Search, FileText } from 'lucide-react';
 import StudyTypeSelector from '@/components/StudyTypeSelector';
-import { calcularEdadDetallada, getStudyDuration } from '@/types/medical';
+import { calcularEdadDetallada, getStudyDuration, cleanDniInput, composePatientName, normalizeDni } from '@/types/medical';
 
 interface Props {
   slot: string;
@@ -17,7 +17,9 @@ interface Props {
 const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
   const store = useClinicStore();
   const [dni, setDni] = useState('');
-  const [name, setName] = useState('');
+  const [apellido, setApellido] = useState('');
+  const [nombres, setNombres] = useState('');
+  const name = composePatientName(apellido, nombres);
   const [phone, setPhone] = useState('');
   const [obraSocial, setObraSocial] = useState('');
   const [fechaNacimiento, setFechaNacimiento] = useState('');
@@ -29,10 +31,11 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
 
   const lookupDni = async () => {
     if (!dni.trim()) return;
-    const p = await store.findPatientByDni(dni.trim());
+    const p = await store.findPatientByDni(dni);
     if (p) {
       setPatientId(p.id);
-      setName(p.name);
+      setApellido(p.name); // paciente existente: nombre completo tal cual está cargado
+      setNombres('');
       setPhone(p.phone);
       setObraSocial(p.obraSocial || '');
       setFechaNacimiento(p.fechaNacimiento || '');
@@ -44,17 +47,17 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
   };
 
   const handleSave = async () => {
-    if (!name.trim()) {
-      toast.error('Ingrese el nombre del paciente');
+    if (!apellido.trim() || (!patientId && !nombres.trim())) {
+      toast.error('Ingrese apellido y nombres del paciente');
       return;
     }
     // Guarda anti-duplicado: si este paciente ya tiene una cita en esta fecha y hora,
     // pedir confirmación explícita antes de crear otra igual.
-    const normDni = dni.replace(/\D/g, '');
+    const normDni = normalizeDni(dni);
     const existingSameSlot = store.getAppointmentsByDate(date).filter((a) => {
       if (a.time !== slot) return false;
       if (patientId && a.patientId === patientId) return true;
-      if (normDni && (a.patient?.dni || '').replace(/\D/g, '') === normDni) return true;
+      if (normDni && normalizeDni(a.patient?.dni) === normDni) return true;
       return false;
     });
     if (existingSameSlot.length > 0) {
@@ -107,7 +110,7 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
       let pid = patientId;
       if (!pid) {
         const p = await store.addPatient({
-          dni,
+          dni: cleanDniInput(dni),
           name: name.trim(),
           phone,
           obraSocial,
@@ -145,14 +148,23 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
   return (
     <>
       <td className="p-1 border border-border">
-        <Input
-          value={name}
-          onChange={(e) => setName(e.target.value.toUpperCase())}
-          placeholder="Nombre"
-          className="h-6 text-xs uppercase"
-          onKeyDown={handleKeyDown}
-          autoFocus
-        />
+        <div className="flex gap-0.5">
+          <Input
+            value={apellido}
+            onChange={(e) => setApellido(e.target.value.toUpperCase())}
+            placeholder="Apellido"
+            className="h-6 text-xs uppercase"
+            onKeyDown={handleKeyDown}
+            autoFocus
+          />
+          <Input
+            value={nombres}
+            onChange={(e) => setNombres(e.target.value.toUpperCase())}
+            placeholder="Nombres"
+            className="h-6 text-xs uppercase"
+            onKeyDown={handleKeyDown}
+          />
+        </div>
       </td>
       <td className="p-1 border border-border">
         <div className="flex items-center gap-0.5">
@@ -174,7 +186,7 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
         <div className="flex items-center gap-0.5">
           <Input
             value={dni}
-            onChange={(e) => setDni(e.target.value)}
+            onChange={(e) => setDni(cleanDniInput(e.target.value))}
             onBlur={lookupDni}
             placeholder="DNI"
             className="h-6 text-xs w-20"

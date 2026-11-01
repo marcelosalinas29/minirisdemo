@@ -33,6 +33,16 @@ export function normalizeDni(dni?: string | null): string {
   return (dni || '').toUpperCase().replace(/[\s.\-_/]/g, '').trim();
 }
 
+/** Al escribir el DNI: sin puntos, espacios ni guiones, sin importar cómo se tipee. Conserva letras (documentos extranjeros). */
+export function cleanDniInput(value: string): string {
+  return value.toUpperCase().replace(/[\s.\-_/]/g, '');
+}
+
+/** Arma el nombre completo: primero apellido, después nombres. */
+export function composePatientName(apellido: string, nombres: string): string {
+  return `${apellido.trim()} ${nombres.trim()}`.replace(/\s+/g, ' ').trim();
+}
+
 export function getPatientHistoryKey(patient: Pick<Patient, 'id' | 'dni'>): string {
   const normalizedDni = normalizeDni(patient.dni);
   return normalizedDni ? `dni:${normalizedDni}` : `patient:${patient.id}`;

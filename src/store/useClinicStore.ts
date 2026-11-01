@@ -483,10 +483,17 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
   getPatient: (id) => get().patients.find((p) => p.id === id),
 
   findPatientByDni: async (dni: string) => {
+    const wanted = normalizeDni(dni);
+    if (!wanted) return null;
+    // Primero entre los pacientes cargados, comparando sin puntos (los viejos pueden tener "12.345.678")
+    const local = get().patients.find((p) => normalizeDni(p.dni) === wanted);
+    if (local) return local;
+    // Si no está cargado, buscar en la base tal cual se escribió y sin puntos
+    const candidates = Array.from(new Set([dni.trim(), wanted]));
     const { data } = await supabase
       .from('patients')
       .select('*')
-      .eq('dni', dni)
+      .in('dni', candidates)
       .limit(1)
       .maybeSingle();
     if (!data) return null;

@@ -11,3 +11,11 @@ describe('searchPatients',()=>{
   it('apellido primero',()=>expect(s('pere')).toEqual(['1','2']));
   it('telefono',()=>expect(s('999888')).toEqual(['3']));
 });
+
+describe('findPatientByDni',()=>{
+  it('encuentra DNI cargado con puntos al escribirlo sin puntos',async()=>{
+    useClinicStore.setState({patients:[mk('1','Pérez Juan','12.345.678')]});
+    const p=await useClinicStore.getState().findPatientByDni('12345678');
+    expect(p?.id).toBe('1');
+  });
+});
