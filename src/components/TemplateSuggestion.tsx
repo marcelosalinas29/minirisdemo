@@ -29,7 +29,7 @@ export function buildMultiStudyHtml(studyType: string, own: DoctorTemplate[] = [
 }
 
 const TemplateSuggestion = ({ open, onOpenChange, studyType, own = [], onApply, onChooseOther }: Props) => {
-  const options = suggestTemplates(studyType);
+  const options = suggestTemplates(studyType).filter((t) => !own.some((o) => o.name === t.name && o.studyType));
   const withoutTemplate = studyType.split(' + ').map((s) => s.trim()).filter((s) => s && suggestTemplates(s).length === 0 && !own.some((o) => o.studyType === s));
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

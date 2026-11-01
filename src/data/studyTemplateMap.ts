@@ -50,3 +50,9 @@ export function suggestTemplates(studyType: string) {
   }
   return REPORT_TEMPLATES.filter((t) => names.includes(t.name));
 }
+
+/** Estudio de la lista al que corresponde una plantilla de la app (para sugerirlo al crear tu versión). */
+export function studyForTemplate(templateName: string): string {
+  const hit = Object.entries(MAP).find(([, names]) => names.includes(templateName));
+  return hit ? hit[0] : '';
+}

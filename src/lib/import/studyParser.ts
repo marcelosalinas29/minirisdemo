@@ -110,3 +110,44 @@ export async function sha256Hex(blob: Blob): Promise<string> {
   const buf = await crypto.subtle.digest('SHA-256', await blob.arrayBuffer());
   return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
+
+const decodeXml = (t: string) =>
+  t.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+const escHtml = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** XML de un .docx (word/document.xml) a HTML conservando negrita, cursiva, subrayado y alineación. */
+export function docxXmlToHtml(xml: string): string {
+  const paras = xml.match(/<w:p[ >][\s\S]*?<\/w:p>/g) || [];
+  const out: string[] = [];
+  for (const p of paras) {
+    const jc = p.match(/<w:jc w:val="(\w+)"/)?.[1];
+    const align = jc === 'center' ? 'center' : jc === 'right' || jc === 'end' ? 'right' : jc === 'both' ? 'justify' : '';
+    let html = '';
+    for (const r of p.match(/<w:r[ >][\s\S]*?<\/w:r>/g) || []) {
+      const rpr = r.match(/<w:rPr>[\s\S]*?<\/w:rPr>/)?.[0] || '';
+      const on = (tag: string) => new RegExp(`<w:${tag}(?: [^>]*)?/>`).test(rpr) && !new RegExp(`<w:${tag} w:val="(0|false|none)"`).test(rpr);
+      const bold = on('b'), italic = on('i'), underline = on('u');
+      let text = '';
+      for (const m of r.matchAll(/<w:t(?: [^>]*)?>([\s\S]*?)<\/w:t>|<w:tab\/>|<w:br\/>/g)) {
+        text += m[0] === '<w:tab/>' ? '    ' : m[0] === '<w:br/>' ? '\n' : escHtml(decodeXml(m[1] ?? ''));
+      }
+      if (!text) continue;
+      text = text.replace(/\n/g, '<br>');
+      if (underline) text = `<u>${text}</u>`;
+      if (italic) text = `<em>${text}</em>`;
+      if (bold) text = `<strong>${text}</strong>`;
+      html += text;
+    }
+    out.push(html.trim() ? `<p${align ? ` style="text-align: ${align}"` : ''}>${html}</p>` : '');
+  }
+  return out.filter(Boolean).join('');
+}
+
+/** Un .docx a HTML con su formato. */
+export async function docxToHtml(blob: Blob): Promise<string> {
+  const entries = await listZipEntries(blob);
+  const doc = entries.find((e) => e.name === 'word/document.xml');
+  if (!doc) throw new Error('No parece un .docx válido');
+  return docxXmlToHtml(new TextDecoder('utf-8').decode(await readZipEntry(blob, doc)));
+}

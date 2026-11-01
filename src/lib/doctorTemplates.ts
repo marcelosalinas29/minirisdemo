@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { docxToText } from '@/lib/import/studyParser';
+import { docxToHtml } from '@/lib/import/studyParser';
 
 export interface DoctorTemplate {
   id: string;
@@ -37,10 +37,14 @@ export function templatesForStudy(own: DoctorTemplate[], studyType: string): Doc
   return own.filter((t) => t.studyType && parts.includes(t.studyType));
 }
 
-/** Texto de un archivo .docx o de texto plano (.txt). Drive: descargarlo primero como Word. */
-export async function textFromFile(file: File): Promise<string> {
+const escapeHtml = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** Archivo .docx (con su formato) o de texto (.txt) a HTML. Drive: descargarlo primero como Word. */
+export async function htmlFromFile(file: File): Promise<string> {
   const name = file.name.toLowerCase();
-  if (name.endsWith('.docx')) return docxToText(file);
-  if (name.endsWith('.txt') || file.type.startsWith('text/')) return file.text();
+  if (name.endsWith('.docx')) return docxToHtml(file);
+  if (name.endsWith('.txt') || file.type.startsWith('text/')) {
+    return (await file.text()).split(/\r?\n/).filter((l) => l.trim()).map((l) => `<p>${escapeHtml(l.trim())}</p>`).join('');
+  }
   throw new Error('Formato no admitido. Usá un archivo Word (.docx) o de texto (.txt).');
 }

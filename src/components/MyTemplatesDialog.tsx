@@ -2,40 +2,42 @@ import { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import RichTextEditor from '@/components/RichTextEditor';
 import { toast } from 'sonner';
 import { Trash2, Upload } from 'lucide-react';
 import { STUDY_TYPES, studyTitle } from '@/types/medical';
-import { textToHtml } from '@/components/TemplateSelector';
-import { deleteMyTemplate, fetchMyTemplates, saveMyTemplate, textFromFile, type DoctorTemplate } from '@/lib/doctorTemplates';
+import { deleteMyTemplate, fetchMyTemplates, saveMyTemplate, htmlFromFile, type DoctorTemplate } from '@/lib/doctorTemplates';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentReport: string; // HTML del informe abierto (para "guardar este informe como plantilla")
   onChanged: () => void;
+  prefill?: { name: string; html: string; studyType: string } | null; // para editar una plantilla de la app y guardar tu versión
 }
 
 const isEmptyHtml = (h: string) => h.replace(/<[^>]*>/g, '').trim() === '';
 
 /** Plantillas propias del médico: subir un archivo, pegar texto o guardar el informe abierto. */
-const MyTemplatesDialog = ({ open, onOpenChange, currentReport, onChanged }: Props) => {
+const MyTemplatesDialog = ({ open, onOpenChange, currentReport, onChanged, prefill }: Props) => {
   const [list, setList] = useState<DoctorTemplate[]>([]);
   const [name, setName] = useState('');
   const [studyType, setStudyType] = useState('');
-  const [text, setText] = useState('');
-  const [html, setHtml] = useState(''); // si viene del informe abierto
+  const [html, setHtml] = useState(''); // contenido de la plantilla, con su formato
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = () => fetchMyTemplates().then(setList).catch(() => toast.error('No se pudieron cargar tus plantillas'));
-  useEffect(() => { if (open) load(); }, [open]);
+  useEffect(() => {
+    if (!open) return;
+    load();
+    if (prefill) { setName(prefill.name); setStudyType(prefill.studyType); setHtml(prefill.html); }
+  }, [open, prefill]);
 
   const onFile = async (file?: File) => {
     if (!file) return;
     try {
-      setText(await textFromFile(file));
-      setHtml('');
+      setHtml(await htmlFromFile(file));
       if (!name.trim()) setName(file.name.replace(/\.[^.]+$/, ''));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'No se pudo leer el archivo');
@@ -43,14 +45,14 @@ const MyTemplatesDialog = ({ open, onOpenChange, currentReport, onChanged }: Pro
     if (fileRef.current) fileRef.current.value = '';
   };
 
-  const canSave = name.trim() && (html || text.trim());
+  const canSave = name.trim() && !isEmptyHtml(html);
   const save = async () => {
     if (!canSave) return;
     setBusy(true);
     try {
-      await saveMyTemplate({ name, studyType: studyType || null, content: html || textToHtml(text) });
+      await saveMyTemplate({ name, studyType: studyType || null, content: html });
       toast.success('Plantilla guardada');
-      setName(''); setStudyType(''); setText(''); setHtml('');
+      setName(''); setStudyType(''); setHtml('');
       await load();
       onChanged();
     } catch {
@@ -104,19 +106,15 @@ const MyTemplatesDialog = ({ open, onOpenChange, currentReport, onChanged }: Pro
             <Upload className="w-4 h-4 mr-2" /> Subir archivo Word (.docx) o texto
           </Button>
           <p className="text-xs text-muted-foreground">Desde Drive: descargalo como Word y subilo desde acá.</p>
-          <Textarea
-            rows={5}
-            placeholder="…o pegá el texto de la plantilla"
-            value={html ? '(se usará el informe abierto con su formato)' : text}
-            disabled={!!html}
-            onChange={(e) => setText(e.target.value)}
-          />
-          {!isEmptyHtml(currentReport) && !html && (
-            <Button variant="ghost" className="w-full" onClick={() => { setHtml(currentReport); setText(''); }}>
-              Usar el informe abierto como plantilla
+          <p className="text-xs text-muted-foreground">Escribí, pegá o ajustá el texto y el formato (negritas, etc.). Queda guardado tal cual.</p>
+          <div className="border border-border rounded-lg">
+            <RichTextEditor content={html} onChange={setHtml} placeholder="Texto de la plantilla…" />
+          </div>
+          {!isEmptyHtml(currentReport) && (
+            <Button variant="ghost" className="w-full" onClick={() => setHtml(currentReport)}>
+              Traer el informe abierto
             </Button>
           )}
-          {html && <Button variant="ghost" className="w-full" onClick={() => setHtml('')}>Quitar el informe abierto</Button>}
           <Button className="w-full" disabled={!canSave || busy} onClick={save}>Guardar plantilla</Button>
         </div>
       </DialogContent>

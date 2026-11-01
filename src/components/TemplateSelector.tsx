@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import MyTemplatesDialog from '@/components/MyTemplatesDialog';
+import { studyForTemplate } from '@/data/studyTemplateMap';
 import { fetchMyTemplates, type DoctorTemplate } from '@/lib/doctorTemplates';
 import { REPORT_TEMPLATES } from '@/data/reportTemplates';
 import { Button } from '@/components/ui/button';
@@ -46,6 +47,7 @@ const TemplateSelector = ({ open, onOpenChange, onApply, currentReport }: Templa
   const [customTitle, setCustomTitle] = useState('');
   const [mine, setMine] = useState<DoctorTemplate[]>([]);
   const [showMine, setShowMine] = useState(false);
+  const [prefill, setPrefill] = useState<{ name: string; html: string; studyType: string } | null>(null);
 
   const loadMine = () => { if (canOwn) fetchMyTemplates().then(setMine).catch(() => setMine([])); };
   useEffect(() => { if (open) loadMine(); }, [open, canOwn]);
@@ -53,7 +55,7 @@ const TemplateSelector = ({ open, onOpenChange, onApply, currentReport }: Templa
   // Lista única: primero las propias, después las de la app.
   const all = [
     ...mine.map((m) => ({ key: `m${m.id}`, name: m.name, own: true, html: m.content })),
-    ...REPORT_TEMPLATES.map((t, i) => ({ key: `b${i}`, name: t.name, own: false, html: textToHtml(t.content) })),
+    ...REPORT_TEMPLATES.filter((t) => !mine.some((m) => m.name === t.name)).map((t, i) => ({ key: `b${t.name}`, name: t.name, own: false, html: textToHtml(t.content) })),
   ];
 
   const toggleTemplate = (key: string) => {
@@ -124,7 +126,13 @@ const TemplateSelector = ({ open, onOpenChange, onApply, currentReport }: Templa
                     checked={selected.includes(t.key)}
                     onCheckedChange={() => toggleTemplate(t.key)}
                   />
-                  <span className="text-sm font-medium">{t.name}{t.own && <span className="ml-2 text-xs text-primary">(mía)</span>}</span>
+                  <span className="text-sm font-medium flex-1">{t.name}{t.own && <span className="ml-2 text-xs text-primary">(mía)</span>}</span>
+                  {canOwn && !t.own && (
+                    <Button
+                      type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs"
+                      onClick={(e) => { e.preventDefault(); setPrefill({ name: t.name, html: t.html, studyType: studyForTemplate(t.name) }); setShowMine(true); }}
+                    >Editar</Button>
+                  )}
                 </label>
               ))}
             </div>
@@ -138,9 +146,9 @@ const TemplateSelector = ({ open, onOpenChange, onApply, currentReport }: Templa
         </div>
 
         {canOwn && (
-          <Button variant="outline" className="w-full" onClick={() => setShowMine(true)}>Mis plantillas (agregar / borrar)</Button>
+          <Button variant="outline" className="w-full" onClick={() => { setPrefill(null); setShowMine(true); }}>Mis plantillas (agregar / borrar)</Button>
         )}
-        <MyTemplatesDialog open={showMine} onOpenChange={setShowMine} currentReport={currentReport} onChanged={loadMine} />
+        <MyTemplatesDialog open={showMine} onOpenChange={setShowMine} currentReport={currentReport} onChanged={loadMine} prefill={prefill} />
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
