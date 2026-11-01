@@ -16,6 +16,47 @@ Aorta: calibre y recorrido conservados.
 No se observa líquido libre en cavidad.`,
   },
   {
+    name: 'Ecografía Pélvica',
+    content: `Vejiga: de paredes finas y contenido líquido homogéneo.
+Útero: en AVF de forma, tamaño y ecoestructura miometrial conservados.
+Medidas: Long: mm.  AP: mm. Axial: mm.
+Endometrio lineal / homogéneo de mm.
+Ovario Derecho: mm x mm.
+Ovario Izquierdo: mm x mm.
+Ambos ovarios de características conservadas para la edad.
+Fondo de saco de Douglas libre.`,
+  },
+  {
+    name: 'Ecografía Vesical',
+    content: `Vejiga: de paredes finas y regulares, contenido líquido homogéneo. Sin imágenes endoluminales.
+Volumen premiccional:  cc. RPM:  cc.`,
+  },
+  {
+    name: 'Ecografía Prostática',
+    content: `Próstata: CP: mm. AP: mm. Axial: mm de ecoestructura finamente no homogénea. Volumen:      cc.
+Vejiga: de paredes finas y contenido líquido homogéneo.
+Volumen premiccional:  cc. RPM:  cc.`,
+  },
+  {
+    name: 'Ecografía Vesical y Prostática',
+    content: `Vejiga: de paredes finas y contenido líquido homogéneo.
+Volumen premiccional:  cc. RPM:  cc.
+Próstata: CP: mm. AP: mm. Axial: mm de ecoestructura finamente no homogénea. Volumen:      cc.`,
+  },
+  {
+    name: 'Ecografía de Partes Blandas',
+    content: `Se realiza rastreo ecográfico de la región referida por el paciente, observándose planos cutáneo, celular subcutáneo y muscular de características ecográficas conservadas.
+No se evidencian colecciones ni masas a destacar por este método.
+Si la clínica lo sugiere completar con otros métodos diagnósticos.`,
+  },
+  {
+    name: 'Ecografía Articular',
+    content: `Se explora la articulación referida: superficies óseas de contorno regular, sin derrame articular ni sinovitis.
+Estructuras tendinosas y ligamentarias visualizadas de ecoestructura fibrilar conservada.
+No se evidencian colecciones periarticulares.
+Si la clínica lo sugiere completar con otros métodos diagnósticos.`,
+  },
+  {
     name: 'Ecografía Renal',
     content: `Riñón derecho: Long: mm  AP: mm Axial: mm. Espesor cortical conservado.
 Riñón izquierdo: Long: mm  AP: mm Axial: mm. Espesor cortical conservado.

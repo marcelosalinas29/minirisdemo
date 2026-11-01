@@ -4,6 +4,12 @@ import { REPORT_TEMPLATES } from '@/data/reportTemplates';
 const MAP: Record<string, string[]> = {
   'Ecografía Abdominal': ['Ecografía Abdominal'],
   'Ecografía Hepatobiliopancreática (Abdomen Superior)': ['Ecografía Hepatobiliopancreática'],
+  'Ecografía Pélvica': ['Ecografía Pélvica'],
+  'Ecografía Vesical': ['Ecografía Vesical'],
+  'Ecografía Prostática': ['Ecografía Prostática'],
+  'Ecografía Vesical y Prostática': ['Ecografía Vesical y Prostática'],
+  'Ecografía de Partes Blandas': ['Ecografía de Partes Blandas'],
+  'Ecografía Articular': ['Ecografía Articular'],
   'Ecografía Renal': ['Ecografía Renal'],
   'Ecografía Renal y Vesicoprostática': ['Renal y Vesicoprostática'],
   'Ecografía Tiroidea': ['Ecografía Tiroidea'],
