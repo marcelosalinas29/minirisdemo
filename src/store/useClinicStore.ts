@@ -296,7 +296,8 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
     if (!current) return;
     const updated = [...current.imageUrls, ...urls];
     trackMutation(id);
-    await supabase.from('appointments').update({ image_urls: updated } as any).eq('id', id);
+    const { error } = await supabase.from('appointments').update({ image_urls: updated } as any).eq('id', id);
+    if (error) throw error;
     set((s) => ({
       appointments: s.appointments.map((a) => a.id === id ? { ...a, imageUrls: updated } : a),
     }));

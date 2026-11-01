@@ -242,34 +242,61 @@ const AppointmentPage = () => {
     });
   };
 
+  // Sin límite de cantidad. Se suben de a 3 en paralelo, se conserva el orden elegido,
+  // y si alguna falla las demás igual se guardan (se avisa cuántas fallaron).
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || !id) return;
-    toast.info('Subiendo imágenes...');
-    try {
-      const urls: string[] = [];
-      for (const file of Array.from(files)) {
-        const compressed = await compressImage(file);
-        const fileName = `${id}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
-        const { error: uploadError } = await supabase.storage
-          .from('estudios_imagenes')
-          .upload(fileName, compressed, { contentType: 'image/jpeg', upsert: false });
-        if (uploadError) throw uploadError;
-        // Bucket privado: en vez de una URL pública para siempre, generamos
-        // una URL firmada de larga duración (10 años) — solo quien tenga
-        // este link exacto puede ver la imagen; nadie puede "listar" ni
-        // adivinar el resto de las imágenes de otros pacientes.
-        const { data: urlData, error: signError } = await supabase.storage
-          .from('estudios_imagenes')
-          .createSignedUrl(fileName, 60 * 60 * 24 * 365 * 10);
-        if (signError || !urlData) throw signError || new Error('No se pudo generar el link de la imagen.');
-        urls.push(urlData.signedUrl);
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    e.target.value = '';
+    if (files.length === 0 || !id) return;
+    const toastId = toast.loading(`Subiendo imágenes (0 de ${files.length})...`);
+    const results: (string | null)[] = new Array(files.length).fill(null);
+    const errors: string[] = [];
+    let done = 0;
+    let next = 0;
+
+    const uploadOne = async (file: File): Promise<string> => {
+      const compressed = await compressImage(file);
+      const fileName = `${id}/${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('estudios_imagenes')
+        .upload(fileName, compressed, { contentType: 'image/jpeg', upsert: false });
+      if (uploadError) throw uploadError;
+      // Bucket privado: URL firmada de larga duración (10 años)
+      const { data: urlData, error: signError } = await supabase.storage
+        .from('estudios_imagenes')
+        .createSignedUrl(fileName, 60 * 60 * 24 * 365 * 10);
+      if (signError || !urlData) throw signError || new Error('No se pudo generar el link de la imagen.');
+      return urlData.signedUrl;
+    };
+
+    const worker = async () => {
+      while (next < files.length) {
+        const i = next++;
+        try {
+          results[i] = await uploadOne(files[i]);
+        } catch (err: any) {
+          console.error('Error uploading image:', files[i].name, err);
+          errors.push(`${files[i].name}: ${err?.message || 'error desconocido'}`);
+        }
+        done++;
+        toast.loading(`Subiendo imágenes (${done} de ${files.length})...`, { id: toastId });
       }
-      await addStorageImagesToAppointment(id, urls);
-      toast.success(`${urls.length} imagen(es) cargada(s)`);
+    };
+
+    try {
+      await Promise.all([worker(), worker(), worker()]);
+      const urls = results.filter((u): u is string => !!u);
+      if (urls.length > 0) await addStorageImagesToAppointment(id, urls);
+      toast.dismiss(toastId);
+      if (errors.length === 0) {
+        toast.success(`${urls.length} imagen(es) cargada(s)`);
+      } else {
+        toast.error(`Se cargaron ${urls.length} de ${files.length}. No se pudieron cargar: ${errors.join('; ')}`);
+      }
     } catch (err: any) {
-      console.error('Error uploading images:', err);
-      toast.error(`Error al subir imágenes: ${err?.message || 'Error desconocido'}`);
+      console.error('Error saving images:', err);
+      toast.dismiss(toastId);
+      toast.error(`Error al guardar las imágenes: ${err?.message || 'Error desconocido'}`);
     }
   };
 
