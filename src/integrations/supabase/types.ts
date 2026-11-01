@@ -180,42 +180,54 @@ export type Database = {
       }
       estudios_previos: {
         Row: {
+          archivo_hash: string | null
           archivo_nombre: string
           archivo_path: string
           created_at: string
           created_by: string | null
-          fecha: string
+          dni_detectado: string | null
+          estado: string
+          fecha: string | null
           id: string
           mime: string | null
+          nombre_detectado: string | null
           notas: string | null
           origen: string
-          patient_id: string
+          patient_id: string | null
           tipo: string
         }
         Insert: {
+          archivo_hash?: string | null
           archivo_nombre: string
           archivo_path: string
           created_at?: string
           created_by?: string | null
-          fecha: string
+          dni_detectado?: string | null
+          estado?: string
+          fecha?: string | null
           id?: string
           mime?: string | null
+          nombre_detectado?: string | null
           notas?: string | null
           origen?: string
-          patient_id: string
+          patient_id?: string | null
           tipo: string
         }
         Update: {
+          archivo_hash?: string | null
           archivo_nombre?: string
           archivo_path?: string
           created_at?: string
           created_by?: string | null
-          fecha?: string
+          dni_detectado?: string | null
+          estado?: string
+          fecha?: string | null
           id?: string
           mime?: string | null
+          nombre_detectado?: string | null
           notas?: string | null
           origen?: string
-          patient_id?: string
+          patient_id?: string | null
           tipo?: string
         }
         Relationships: [

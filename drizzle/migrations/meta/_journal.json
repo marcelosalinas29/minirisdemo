@@ -29,6 +29,13 @@
       "when": 1793496130296,
       "tag": "0003_create_estudios_previos",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793499245549,
+      "tag": "0004_estudios_previos_pendientes",
+      "breakpoints": true
     }
   ]
 }
