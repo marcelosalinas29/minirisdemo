@@ -71,6 +71,13 @@
       "when": 1793510360458,
       "tag": "0009_estudios_previos_delete_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793546829467,
+      "tag": "0010_create_doctor_templates",
+      "breakpoints": true
     }
   ]
 }

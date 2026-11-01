@@ -214,6 +214,36 @@ export type Database = {
         }
         Relationships: []
       }
+      doctor_templates: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          name: string
+          study_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          name: string
+          study_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          name?: string
+          study_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       estudios_previos: {
         Row: {
           archivo_hash: string | null
