@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { suggestTemplates } from '@/data/studyTemplateMap';
 import { textToHtml } from '@/components/TemplateSelector';
+import { studyTitle } from '@/types/medical';
 
 interface Props {
   open: boolean;
@@ -12,6 +13,17 @@ interface Props {
 }
 
 /** Al abrir un estudio sin informe: propone la plantilla del tipo de estudio, pidiendo confirmación. */
+/** Varios estudios en un turno: cada uno con su título en negrita y mayúscula, separados por una línea en blanco. */
+export function buildMultiStudyHtml(studyType: string): string {
+  const blocks: string[] = [];
+  for (const part of studyType.split(' + ').map((x) => x.trim()).filter(Boolean)) {
+    const t = suggestTemplates(part)[0];
+    if (!t) continue;
+    blocks.push(`<p><strong>${studyTitle(part)}</strong></p>${textToHtml(t.content)}`);
+  }
+  return blocks.join('<p></p>');
+}
+
 const TemplateSuggestion = ({ open, onOpenChange, studyType, onApply, onChooseOther }: Props) => {
   const options = suggestTemplates(studyType);
   const withoutTemplate = studyType.split(' + ').map((s) => s.trim()).filter((s) => s && suggestTemplates(s).length === 0);
@@ -27,8 +39,8 @@ const TemplateSuggestion = ({ open, onOpenChange, studyType, onApply, onChooseOt
             <p className="text-xs text-amber-700">Sin plantilla (se escribe a mano): {withoutTemplate.join(', ')}</p>
           )}
           {options.length > 1 && (
-            <Button className="w-full justify-start" onClick={() => { onApply(options.map((t) => textToHtml(t.content)).join('<p></p>')); onOpenChange(false); }}>
-              Usar todas ({options.length})
+            <Button className="w-full justify-start" onClick={() => { onApply(studyType.includes(' + ') ? buildMultiStudyHtml(studyType) : options.map((t) => textToHtml(t.content)).join('<p></p>')); onOpenChange(false); }}>
+              {studyType.includes(' + ') ? `Usar todos los estudios (${studyType.split(' + ').length})` : `Usar todas (${options.length})`}
             </Button>
           )}
           {options.map((t) => (

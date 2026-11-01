@@ -226,7 +226,7 @@ export function getStudyDuration(studyType: string, baseInterval: number = 10): 
 /** Format study type string: replace "+" with "," and last with "y" */
 /** Abreviaturas que se escriben completas en cualquier lugar donde se muestre el nombre del estudio. */
 const STUDY_ABBREVIATIONS: [RegExp, string][] = [
-  [/^ECO DOPPLER\b/, 'ECOGRAFÍA DOPPLER'],
+  [/^ECO DOPPLER\b/, 'DOPPLER'],
   [/^ECO\b(?!GRAF)/, 'ECOGRAFÍA'],
   [/\bMMII\b/g, 'DE MIEMBROS INFERIORES'],
   [/\bMMSS\b/g, 'DE MIEMBROS SUPERIORES'],
