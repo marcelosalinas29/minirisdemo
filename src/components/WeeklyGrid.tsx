@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { format, addDays, startOfWeek, isSameDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Appointment, StudyStatus } from '@/types/medical';
-import { STATUS_LABELS } from '@/types/medical';
+import { STATUS_LABELS, isInactiveStatus } from '@/types/medical';
 import { Badge } from '@/components/ui/badge';
 
 const statusClass: Record<StudyStatus, string> = {
@@ -11,6 +11,8 @@ const statusClass: Record<StudyStatus, string> = {
   'in-study': 'status-badge-in-study',
   'reported': 'status-badge-reported',
   'sent': 'status-badge-sent',
+  'cancelled': 'bg-muted text-muted-foreground line-through',
+  'no-show': 'bg-muted text-muted-foreground',
 };
 
 // Generate 10-minute time slots
@@ -126,7 +128,7 @@ const WeeklyGrid = ({ appointments, weekStart }: WeeklyGridProps) => {
                   {weekDays.map((day) => {
                     const dateStr = format(day, 'yyyy-MM-dd');
                     const key = `${dateStr}_${slot}`;
-                    const apts = appointmentMap.get(key) || [];
+                    const apts = (appointmentMap.get(key) || []).filter((x) => !isInactiveStatus(x.status));
                     const isOccupied = apts.length > 0;
 
                     return (

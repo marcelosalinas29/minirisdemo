@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Appointment, StudyStatus } from '@/types/medical';
+import { isInactiveStatus } from '@/types/medical';
 import { STATUS_LABELS, formatStudyType, calcularEdad, calcularEdadDetallada, getStudyDuration } from '@/types/medical';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,8 @@ const statusClass: Record<StudyStatus, string> = {
   'in-study': 'status-badge-in-study',
   'reported': 'status-badge-reported',
   'sent': 'status-badge-sent',
+  'cancelled': 'bg-muted text-muted-foreground line-through',
+  'no-show': 'bg-muted text-muted-foreground',
 };
 
 function generateDefaultTimeSlots(): string[] {
@@ -140,6 +143,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
   const appointmentMap = useMemo(() => {
     const map = new Map<string, Appointment>();
     for (const a of appointments) {
+      if (isInactiveStatus(a.status)) continue;
       map.set(a.time, a);
     }
     return map;
@@ -183,7 +187,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
     return blocked;
   }, [appointments, timeSlots, appointmentMap]);
 
-  const occupiedCount = appointments.length;
+  const occupiedCount = appointments.filter((a) => !isInactiveStatus(a.status)).length;
 
 
   const startEdit = (apt: Appointment) => {
@@ -252,9 +256,15 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
   const timeRows = useMemo(() => {
     const rows: { slot: string; apt: Appointment | undefined; extra: boolean }[] = [];
     for (const slot of timeSlots) {
-      const list = appointmentsBySlot.get(slot);
-      if (!list || list.length === 0) rows.push({ slot, apt: undefined, extra: false });
-      else list.forEach((a, i) => rows.push({ slot, apt: a, extra: i > 0 }));
+      const list = appointmentsBySlot.get(slot) || [];
+      let activeSeen = 0;
+      for (const a of list) {
+        const inactive = isInactiveStatus(a.status);
+        rows.push({ slot, apt: a, extra: !inactive && activeSeen > 0 });
+        if (!inactive) activeSeen++;
+      }
+      // Si no queda ningún turno activo en esa hora, el horario vuelve a estar libre
+      if (activeSeen === 0) rows.push({ slot, apt: undefined, extra: false });
     }
     return rows;
   }, [timeSlots, appointmentsBySlot]);
@@ -302,7 +312,8 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
               const prevSlot = idx > 0 ? timeRows[idx - 1].slot : null;
               const slotHour = parseInt(slot.split(':')[0]);
               const prevHour = prevSlot ? parseInt(prevSlot.split(':')[0]) : null;
-              const showMorningSep = !extra && (slot === '08:00' || (idx === 0 && slotHour < 13));
+              const firstOfSlot = idx === 0 || timeRows[idx - 1].slot !== slot;
+              const showMorningSep = firstOfSlot && (slot === '08:00' || (idx === 0 && slotHour < 13));
               const showAfternoonSep = prevHour !== null && prevHour < 13 && slotHour >= 13;
 
               return (
@@ -323,7 +334,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                   )}
                   <tr
                     key={`row-${slot}-${apt?.id ?? 'libre'}`}
-                    className={`transition-colors ${apt?.asistio ? 'bg-green-100 dark:bg-green-900/30' : extra ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-l-amber-500' : overbook ? 'bg-accent/30 border-l-2 border-l-accent' : isOccupied ? 'bg-card hover:bg-muted/30' : 'opacity-50 hover:opacity-80 hover:bg-muted/20'}`}
+                    className={`transition-colors ${apt && isInactiveStatus(apt.status) ? 'bg-muted/40 opacity-60' : apt?.asistio ? 'bg-green-100 dark:bg-green-900/30' : extra ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-l-amber-500' : overbook ? 'bg-accent/30 border-l-2 border-l-accent' : isOccupied ? 'bg-card hover:bg-muted/30' : 'opacity-50 hover:opacity-80 hover:bg-muted/20'}`}
                   >
                     <td className="p-1.5 border border-border font-mono text-center text-muted-foreground font-semibold">
                       {slot}
@@ -423,6 +434,12 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                                     <SelectItem value="in-study">En estudio</SelectItem>
                                     <SelectItem value="reported">Reportado</SelectItem>
                                     <SelectItem value="sent">Enviado</SelectItem>
+                                    {(apt.status === 'pending' || apt.status === 'in-study' || isInactiveStatus(apt.status)) && (
+                                      <>
+                                        <SelectItem value="cancelled">Cancelado</SelectItem>
+                                        <SelectItem value="no-show">Ausente</SelectItem>
+                                      </>
+                                    )}
                                   </>
                                 )}
                               </SelectContent>

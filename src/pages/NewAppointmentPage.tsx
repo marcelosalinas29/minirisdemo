@@ -5,7 +5,7 @@ import { es } from 'date-fns/locale';
 import AppLayout from '@/components/AppLayout';
 import { useClinicStore } from '@/store/useClinicStore';
 import { useScheduleStore } from '@/store/useScheduleStore';
-import { STUDY_TYPES, DNI_TIPOS, cleanDniInput, composePatientName, calcularEdad, calcularEdadDetallada, getStudyDuration, PHONE_DEFAULT_PREFIX, cleanPhoneInput, hasPhoneNumber, phoneToSave } from '@/types/medical';
+import { STUDY_TYPES, DNI_TIPOS, cleanDniInput, composePatientName, calcularEdad, calcularEdadDetallada, getStudyDuration, PHONE_DEFAULT_PREFIX, cleanPhoneInput, hasPhoneNumber, phoneToSave, isInactiveStatus } from '@/types/medical';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -71,7 +71,7 @@ const NewAppointmentPage = () => {
   // Occupied slots for the selected date
   const occupiedSlots = useMemo(() => {
     const existing = getAppointmentsByDate(dateStr);
-    return new Set(existing.map(a => a.time));
+    return new Set(existing.filter(a => !isInactiveStatus(a.status)).map(a => a.time));
   }, [dateStr, getAppointmentsByDate]);
 
   const suggestions = name.length >= 2 && !selectedPatientId ? searchPatients(name) : [];
@@ -201,6 +201,7 @@ const NewAppointmentPage = () => {
         .select('id')
         .eq('date', dateStr)
         .eq('time', finalTime)
+        .not('status', 'in', '(cancelled,no-show)')
         .limit(1);
       if (clash && clash.length > 0) {
         toast.error('Ese horario acaba de ser ocupado. Elegí otro horario o usá Sobreturno.');

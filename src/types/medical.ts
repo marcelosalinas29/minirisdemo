@@ -1,4 +1,9 @@
-export type StudyStatus = 'pending' | 'in-study' | 'reported' | 'sent';
+export type StudyStatus = 'pending' | 'in-study' | 'reported' | 'sent' | 'cancelled' | 'no-show';
+
+/** Turno cancelado o ausente: se marca, no se borra, y libera el horario. */
+export function isInactiveStatus(status: string): boolean {
+  return status === 'cancelled' || status === 'no-show';
+}
 
 export type StudyType = string;
 
@@ -120,6 +125,8 @@ export const STATUS_LABELS: Record<StudyStatus, string> = {
   'in-study': 'En estudio',
   'reported': 'Reportado',
   'sent': 'Enviado',
+  'cancelled': 'Cancelado',
+  'no-show': 'Ausente',
 };
 
 /** Calculate age in years from birth date (legacy, returns number of years) */

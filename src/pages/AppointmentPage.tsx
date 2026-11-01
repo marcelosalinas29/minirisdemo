@@ -37,6 +37,8 @@ const statusClass: Record<StudyStatus, string> = {
   'in-study': 'status-badge-in-study',
   'reported': 'status-badge-reported',
   'sent': 'status-badge-sent',
+  'cancelled': 'bg-muted text-muted-foreground line-through',
+  'no-show': 'bg-muted text-muted-foreground',
 };
 
 /** Convert HTML to plain text preserving paragraph breaks */
@@ -1083,6 +1085,12 @@ const AppointmentPage = () => {
               <SelectItem value="in-study">En estudio</SelectItem>
               <SelectItem value="reported">Reportado</SelectItem>
               <SelectItem value="sent">Enviado</SelectItem>
+              {(currentAppointment.status === 'pending' || currentAppointment.status === 'in-study' || currentAppointment.status === 'cancelled' || currentAppointment.status === 'no-show') && (
+                <>
+                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                  <SelectItem value="no-show">Ausente</SelectItem>
+                </>
+              )}
             </SelectContent>
           </Select>
         </div>

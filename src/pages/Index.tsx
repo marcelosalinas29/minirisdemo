@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
-import { getPatientHistoryKey, normalizeDni } from '@/types/medical';
+import { getPatientHistoryKey, normalizeDni, isInactiveStatus } from '@/types/medical';
 import DailyView from '@/components/DailyView';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -45,7 +45,8 @@ const Index = () => {
     (async () => {
       const { data, error } = await supabase
         .from('appointments')
-        .select('patient_id, patients(id, dni, dni_materno)');
+        .select('patient_id, patients(id, dni, dni_materno)')
+        .not('status', 'in', '(cancelled,no-show)');
       if (cancelled || error || !data) return;
       const counts = new Map<string, number>();
       for (const row of data as { patient_id: string; patients: { id: string; dni: string | null; dni_materno: boolean | null } | null }[]) {
@@ -61,6 +62,7 @@ const Index = () => {
   const patientsWithHistory = useMemo(() => {
     const counts = new Map<string, number>();
     for (const a of allAppointments) {
+      if (isInactiveStatus(a.status)) continue; // cancelado/ausente no es un estudio previo
       const key = getPatientHistoryKey(a.patient);
       counts.set(key, (counts.get(key) || 0) + 1);
     }
