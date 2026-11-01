@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import MyTemplatesDialog from '@/components/MyTemplatesDialog';
+import { fetchMyTemplates, type DoctorTemplate } from '@/lib/doctorTemplates';
 import { REPORT_TEMPLATES } from '@/data/reportTemplates';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -37,13 +40,24 @@ interface TemplateSelectorProps {
 }
 
 const TemplateSelector = ({ open, onOpenChange, onApply, currentReport }: TemplateSelectorProps) => {
-  const [selected, setSelected] = useState<number[]>([]);
+  const { isSecretary, isViewer } = useAuth();
+  const canOwn = !isSecretary && !isViewer;
+  const [selected, setSelected] = useState<string[]>([]);
   const [customTitle, setCustomTitle] = useState('');
+  const [mine, setMine] = useState<DoctorTemplate[]>([]);
+  const [showMine, setShowMine] = useState(false);
 
-  const toggleTemplate = (index: number) => {
-    setSelected((prev) =>
-      prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index]
-    );
+  const loadMine = () => { if (canOwn) fetchMyTemplates().then(setMine).catch(() => setMine([])); };
+  useEffect(() => { if (open) loadMine(); }, [open, canOwn]);
+
+  // Lista única: primero las propias, después las de la app.
+  const all = [
+    ...mine.map((m) => ({ key: `m${m.id}`, name: m.name, own: true, html: m.content })),
+    ...REPORT_TEMPLATES.map((t, i) => ({ key: `b${i}`, name: t.name, own: false, html: textToHtml(t.content) })),
+  ];
+
+  const toggleTemplate = (key: string) => {
+    setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   };
 
   const handleApply = () => {
@@ -53,10 +67,9 @@ const TemplateSelector = ({ open, onOpenChange, onApply, currentReport }: Templa
       htmlParts.push(`<p><strong>${customTitle.trim().toUpperCase()}</strong></p>`);
     }
 
-    const sortedSelected = [...selected].sort((a, b) => a - b);
-    sortedSelected.forEach((idx, i) => {
-      const template = REPORT_TEMPLATES[idx];
-      htmlParts.push(textToHtml(template.content));
+    const sortedSelected = all.filter((t) => selected.includes(t.key));
+    sortedSelected.forEach((template, i) => {
+      htmlParts.push(template.html);
       if (i < sortedSelected.length - 1) {
         htmlParts.push('<p>---</p>');
       }
@@ -102,16 +115,16 @@ const TemplateSelector = ({ open, onOpenChange, onApply, currentReport }: Templa
               Plantillas disponibles
             </label>
             <div className="space-y-1 border border-border rounded-lg overflow-hidden">
-              {REPORT_TEMPLATES.map((t, idx) => (
+              {all.map((t) => (
                 <label
-                  key={t.name}
+                  key={t.key}
                   className="flex items-center gap-3 px-3 py-2.5 hover:bg-secondary/50 transition-colors cursor-pointer border-b border-border last:border-0"
                 >
                   <Checkbox
-                    checked={selected.includes(idx)}
-                    onCheckedChange={() => toggleTemplate(idx)}
+                    checked={selected.includes(t.key)}
+                    onCheckedChange={() => toggleTemplate(t.key)}
                   />
-                  <span className="text-sm font-medium">{t.name}</span>
+                  <span className="text-sm font-medium">{t.name}{t.own && <span className="ml-2 text-xs text-primary">(mía)</span>}</span>
                 </label>
               ))}
             </div>
@@ -123,6 +136,11 @@ const TemplateSelector = ({ open, onOpenChange, onApply, currentReport }: Templa
             </p>
           )}
         </div>
+
+        {canOwn && (
+          <Button variant="outline" className="w-full" onClick={() => setShowMine(true)}>Mis plantillas (agregar / borrar)</Button>
+        )}
+        <MyTemplatesDialog open={showMine} onOpenChange={setShowMine} currentReport={currentReport} onChanged={loadMine} />
 
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={() => onOpenChange(false)}>

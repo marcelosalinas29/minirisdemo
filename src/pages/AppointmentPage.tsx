@@ -13,6 +13,7 @@ import TemplateSelector from '@/components/TemplateSelector';
 import TemplateSuggestion from '@/components/TemplateSuggestion';
 import ReportVersionsDialog from '@/components/ReportVersionsDialog';
 import { suggestTemplates } from '@/data/studyTemplateMap';
+import { fetchMyTemplates, templatesForStudy, type DoctorTemplate } from '@/lib/doctorTemplates';
 import StudyTypeSelector from '@/components/StudyTypeSelector';
 import RichTextEditor from '@/components/RichTextEditor';
 import DictationPanel from '@/components/DictationPanel';
@@ -152,12 +153,20 @@ const AppointmentPage = () => {
   const [showSuggestion, setShowSuggestion] = useState(false);
   const [showVersions, setShowVersions] = useState(false);
   const suggestionAsked = useRef(false);
+  const [ownTemplates, setOwnTemplates] = useState<DoctorTemplate[]>([]);
   useEffect(() => {
     if (suggestionAsked.current || isReadOnly || detailLoading || !appointment) return;
     suggestionAsked.current = true;
-    if (isReportEmpty(appointment.report || '') && isReportEmpty(report) && suggestTemplates(appointment.studyType).length > 0) {
-      setShowSuggestion(true);
-    }
+    if (!(isReportEmpty(appointment.report || '') && isReportEmpty(report))) return;
+    const hasBuiltIn = suggestTemplates(appointment.studyType).length > 0;
+    if (isSecretary || isViewer) { if (hasBuiltIn) setShowSuggestion(true); return; }
+    fetchMyTemplates()
+      .catch(() => [] as DoctorTemplate[])
+      .then((mine) => {
+        const own = templatesForStudy(mine, appointment.studyType);
+        setOwnTemplates(own);
+        if (hasBuiltIn || own.length > 0) setShowSuggestion(true);
+      });
   }, [detailLoading, appointment, isReadOnly]);
 
   // Autoguardado: guarda el borrador 3 segundos después de dejar de escribir.
@@ -1174,6 +1183,7 @@ const AppointmentPage = () => {
             open={showSuggestion}
             onOpenChange={setShowSuggestion}
             studyType={appointment?.studyType || ''}
+            own={ownTemplates}
             onApply={applyTemplate}
             onChooseOther={() => setShowTemplates(true)}
           />

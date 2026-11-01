@@ -10,3 +10,12 @@ describe('varios estudios en un turno', () => {
     expect(html.indexOf('MAMARIA')).toBeLessThan(html.indexOf('TRANSVAGINAL'));
   });
 });
+
+describe('plantillas propias', () => {
+  it('la plantilla propia reemplaza a la de la app para ese estudio', () => {
+    const own = [{ id: '1', name: 'Mi mamaria', studyType: 'Ecografía Mamaria', content: '<p>MI TEXTO PROPIO</p>' }];
+    const html = buildMultiStudyHtml('Ecografía Mamaria + Ecografía Renal', own);
+    expect(html).toContain('MI TEXTO PROPIO');
+    expect(html).toContain('<strong>ECOGRAFÍA RENAL</strong>');
+  });
+});
