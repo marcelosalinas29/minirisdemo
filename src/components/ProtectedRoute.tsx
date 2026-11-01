@@ -1,8 +1,9 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { session, loading } = useAuth();
+  const { session, loading, isViewer } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -13,6 +14,11 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!session) return <Navigate to="/login" replace />;
+
+  // Médico consultor: solo el buscador de estudios y su perfil
+  if (isViewer && location.pathname !== '/consultor' && location.pathname !== '/profile') {
+    return <Navigate to="/consultor" replace />;
+  }
 
   return <>{children}</>;
 };

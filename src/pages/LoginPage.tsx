@@ -16,7 +16,7 @@ const EVENT_UNLOCK_KEY = 'demo_event_unlocked';
 const DEMO_ACCOUNTS = [
   { email: 'secretaria@demo.com', password: 'demo1234', label: 'Secretaria', icon: ClipboardList, desc: 'Gestiona citas y pacientes' },
   { email: 'doctor@demo.com', password: 'demo1234', label: 'Médico ejecutor', icon: Stethoscope, desc: 'Realiza e informa estudios' },
-  { email: 'visor@demo.com', password: 'demo1234', label: 'Médico visualizador', icon: Eye, desc: 'Solo lectura de informes' },
+  { email: 'visor@demo.com', password: 'demo1234', label: 'Médico consultor', icon: Eye, desc: 'Solo busca y descarga informes' },
 ];
 
 const LoginPage = () => {

@@ -25,7 +25,7 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, role, signOut, isViewer } = useAuth();
-  const navItems = isViewer ? allNavItems.filter(n => n.path !== '/new') : allNavItems;
+  const navItems = isViewer ? [{ path: '/consultor', icon: Search, label: 'Buscar estudios' }] : allNavItems;
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [commOpen, setCommOpen] = useState(false);
@@ -81,13 +81,13 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
                 )}
               </button>
             )}
-            <button
+            {!isViewer && <button
               onClick={() => setSearchOpen(!searchOpen)}
               className="p-1.5 text-primary-foreground/70 hover:text-primary-foreground transition-colors"
               title="Buscar paciente"
             >
               <Search className="w-4 h-4" />
-            </button>
+            </button>}
             {profile && (
               <button
                 onClick={() => navigate('/profile')}

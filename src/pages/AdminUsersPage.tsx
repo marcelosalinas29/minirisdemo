@@ -23,7 +23,7 @@ interface AdminUser {
 const ROLE_LABELS: Record<Role, string> = {
   doctor: 'Médico',
   secretary: 'Secretaria',
-  viewer: 'Médico visualizador',
+  viewer: 'Médico consultor',
 };
 
 const AdminUsersPage = () => {
@@ -133,7 +133,7 @@ const AdminUsersPage = () => {
               <SelectContent>
                 <SelectItem value="doctor">Médico</SelectItem>
                 <SelectItem value="secretary">Secretaria</SelectItem>
-                <SelectItem value="viewer">Médico visualizador</SelectItem>
+                <SelectItem value="viewer">Médico consultor</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -168,7 +168,7 @@ const AdminUsersPage = () => {
                     <SelectContent>
                       <SelectItem value="doctor">Médico</SelectItem>
                       <SelectItem value="secretary">Secretaria</SelectItem>
-                      <SelectItem value="viewer">Médico visualizador</SelectItem>
+                      <SelectItem value="viewer">Médico consultor</SelectItem>
                     </SelectContent>
                   </Select>
                   {!u.is_admin && (
