@@ -37,14 +37,16 @@ const PatientHistoryModal = ({ patientId, patientDni, patientName, open, onOpenC
       const normalizedDni = normalizeDni(patientDni);
       let patientIds = [patientId];
 
-      if (normalizedDni) {
+      // Recién nacido con DNI de la madre: su historial es solo el suyo
+      const { data: own } = await supabase.from('patients').select('dni_materno').eq('id', patientId).maybeSingle();
+      if (normalizedDni && !own?.dni_materno) {
         const { data: patients } = await supabase
           .from('patients')
-          .select('id, dni');
+          .select('id, dni, dni_materno');
         patientIds = Array.from(new Set([
           patientId,
-          ...((patients || []) as { id: string; dni: string | null }[])
-            .filter((p) => normalizeDni(p.dni) === normalizedDni)
+          ...((patients || []) as { id: string; dni: string | null; dni_materno: boolean }[])
+            .filter((p) => !p.dni_materno && normalizeDni(p.dni) === normalizedDni)
             .map((p) => p.id),
         ]));
       }

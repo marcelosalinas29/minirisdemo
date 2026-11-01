@@ -6,7 +6,7 @@ import { es } from 'date-fns/locale';
 import { toast } from 'sonner';
 import AppLayout from '@/components/AppLayout';
 import { useClinicStore } from '@/store/useClinicStore';
-import { STATUS_LABELS, normalizeDni, type Appointment } from '@/types/medical';
+import { STATUS_LABELS, identityDni, type Appointment } from '@/types/medical';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 
@@ -31,9 +31,9 @@ const HistoryPage = () => {
       if (query.trim()) {
         const found = searchPatients(query);
         // Incluye las demás fichas con el mismo DNI, para ver todo el historial de la persona
-        const dnis = new Set(found.map((p) => normalizeDni(p.dni)).filter(Boolean));
+        const dnis = new Set(found.map((p) => identityDni(p)).filter(Boolean));
         const ids = new Set(found.map((p) => p.id));
-        patients.forEach((p) => { if (dnis.has(normalizeDni(p.dni))) ids.add(p.id); });
+        patients.forEach((p) => { if (dnis.has(identityDni(p))) ids.add(p.id); });
         if (ids.size === 0) {
           setResults([]);
           return;

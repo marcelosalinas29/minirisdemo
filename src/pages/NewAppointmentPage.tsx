@@ -5,7 +5,7 @@ import { es } from 'date-fns/locale';
 import AppLayout from '@/components/AppLayout';
 import { useClinicStore } from '@/store/useClinicStore';
 import { useScheduleStore } from '@/store/useScheduleStore';
-import { STUDY_TYPES, cleanDniInput, composePatientName, calcularEdad, calcularEdadDetallada, getStudyDuration } from '@/types/medical';
+import { STUDY_TYPES, DNI_TIPOS, cleanDniInput, composePatientName, calcularEdad, calcularEdadDetallada, getStudyDuration } from '@/types/medical';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -24,6 +24,8 @@ const NewAppointmentPage = () => {
   const { doctors, fetchDoctors, fetchAllSchedules, generateAvailableSlots, schedules, isDateBlocked, fetchBlockedDates, blockedDates } = useScheduleStore();
 
   const [dni, setDni] = useState('');
+  const [dniTipo, setDniTipo] = useState('DNI');
+  const [dniMaterno, setDniMaterno] = useState(false);
   const [apellido, setApellido] = useState('');
   const [nombres, setNombres] = useState('');
   const name = composePatientName(apellido, nombres);
@@ -85,13 +87,15 @@ const NewAppointmentPage = () => {
     setApellido(p.name); // pacientes existentes: nombre completo tal cual está cargado
     setNombres('');
     setDni(cleanDniInput(p.dni || ''));
+    setDniTipo(p.dniTipo || 'DNI');
+    setDniMaterno(!!p.dniMaterno);
     setFechaNacimiento(p.fechaNacimiento || '');
     setPhone(p.phone);
     setObraSocial(p.obraSocial || '');
   };
 
   const handleDniBlur = useCallback(async () => {
-    if (!dni.trim() || selectedPatientId) return;
+    if (!dni.trim() || selectedPatientId || dniMaterno) return;
     setLookingUp(true);
     try {
       const patient = await findPatientByDni(dni.trim());
@@ -104,7 +108,7 @@ const NewAppointmentPage = () => {
     } finally {
       setLookingUp(false);
     }
-  }, [dni, selectedPatientId, findPatientByDni]);
+  }, [dni, selectedPatientId, dniMaterno, findPatientByDni]);
 
   const toggleStudy = (study: string) => {
     setSelectedStudies(prev =>
@@ -161,6 +165,10 @@ const NewAppointmentPage = () => {
       toast.error('Debe seleccionar el médico al que se asigna la cita');
       return;
     }
+    if (!cleanDniInput(dni)) {
+      toast.error('El documento es obligatorio (en recién nacidos, el de la madre)');
+      return;
+    }
     if (!apellido.trim() || (!selectedPatientId && !nombres.trim()) || !phone || !finalTime || !studyType) {
       toast.error('Por favor complete todos los campos obligatorios');
       return;
@@ -206,6 +214,8 @@ const NewAppointmentPage = () => {
       if (!patientId) {
         const patient = await addPatient({
           dni: cleanDniInput(dni),
+          dniTipo,
+          dniMaterno,
           name,
           phone,
           fechaNacimiento,
@@ -235,7 +245,14 @@ const NewAppointmentPage = () => {
       <div className="p-4 space-y-5 max-w-lg mx-auto">
         {/* DNI field */}
         <div className="space-y-2">
-          <Label>DNI / ID</Label>
+          <Label>Documento (obligatorio)</Label>
+          <div className="flex gap-2">
+            {DNI_TIPOS.map((t) => (
+              <Button key={t.value} type="button" size="sm" variant={dniTipo === t.value ? 'default' : 'outline'} onClick={() => { setDniTipo(t.value); setSelectedPatientId(null); }}>
+                {t.label}
+              </Button>
+            ))}
+          </div>
           <Input
             value={dni}
             onChange={(e) => { setDni(cleanDniInput(e.target.value)); setSelectedPatientId(null); }}
@@ -243,6 +260,10 @@ const NewAppointmentPage = () => {
             placeholder="Número de documento"
           />
           {lookingUp && <p className="text-xs text-muted-foreground">Buscando paciente...</p>}
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={dniMaterno} onChange={(e) => { setDniMaterno(e.target.checked); if (selectedPatientId) { setApellido(''); setNombres(''); setPhone(''); setFechaNacimiento(''); } setSelectedPatientId(null); }} />
+            Recién nacido: usa el documento de la madre
+          </label>
         </div>
 
         <div className="space-y-2">

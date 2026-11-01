@@ -53,6 +53,8 @@ function mapPatient(p: any): Patient {
     phone: p.phone,
     fechaNacimiento: p.fecha_nacimiento || undefined,
     obraSocial: p.obra_social || '',
+    dniTipo: p.dni_tipo || 'DNI',
+    dniMaterno: !!p.dni_materno,
   };
 }
 
@@ -184,6 +186,8 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
         phone: data.phone,
         fecha_nacimiento: data.fechaNacimiento || null,
         obra_social: data.obraSocial || '',
+        dni_tipo: data.dniTipo || 'DNI',
+        dni_materno: !!data.dniMaterno,
       } as any)
       .select()
       .single();
@@ -486,7 +490,7 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
     const wanted = normalizeDni(dni);
     if (!wanted) return null;
     // Primero entre los pacientes cargados, comparando sin puntos (los viejos pueden tener "12.345.678")
-    const local = get().patients.find((p) => normalizeDni(p.dni) === wanted);
+    const local = get().patients.find((p) => !p.dniMaterno && normalizeDni(p.dni) === wanted);
     if (local) return local;
     // Si no está cargado, buscar en la base tal cual se escribió y sin puntos
     const candidates = Array.from(new Set([dni.trim(), wanted]));
@@ -494,6 +498,7 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
       .from('patients')
       .select('*')
       .in('dni', candidates)
+      .eq('dni_materno', false)
       .limit(1)
       .maybeSingle();
     if (!data) return null;

@@ -17,6 +17,7 @@ interface Props {
 const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
   const store = useClinicStore();
   const [dni, setDni] = useState('');
+  const [dniMaterno, setDniMaterno] = useState(false);
   const [apellido, setApellido] = useState('');
   const [nombres, setNombres] = useState('');
   const name = composePatientName(apellido, nombres);
@@ -30,7 +31,7 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
   const [showStudySelector, setShowStudySelector] = useState(false);
 
   const lookupDni = async () => {
-    if (!dni.trim()) return;
+    if (!dni.trim() || dniMaterno) return;
     const p = await store.findPatientByDni(dni);
     if (p) {
       setPatientId(p.id);
@@ -47,17 +48,21 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
   };
 
   const handleSave = async () => {
+    if (!cleanDniInput(dni)) {
+      toast.error('Ingrese el documento del paciente (en recién nacidos, el de la madre)');
+      return;
+    }
     if (!apellido.trim() || (!patientId && !nombres.trim())) {
       toast.error('Ingrese apellido y nombres del paciente');
       return;
     }
     // Guarda anti-duplicado: si este paciente ya tiene una cita en esta fecha y hora,
     // pedir confirmación explícita antes de crear otra igual.
-    const normDni = normalizeDni(dni);
+    const normDni = dniMaterno ? '' : normalizeDni(dni);
     const existingSameSlot = store.getAppointmentsByDate(date).filter((a) => {
       if (a.time !== slot) return false;
       if (patientId && a.patientId === patientId) return true;
-      if (normDni && normalizeDni(a.patient?.dni) === normDni) return true;
+      if (normDni && !a.patient?.dniMaterno && normalizeDni(a.patient?.dni) === normDni) return true;
       return false;
     });
     if (existingSameSlot.length > 0) {
@@ -111,6 +116,8 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
       if (!pid) {
         const p = await store.addPatient({
           dni: cleanDniInput(dni),
+          dniTipo: /[A-Z]/.test(cleanDniInput(dni)) ? 'OTRO' : 'DNI',
+          dniMaterno,
           name: name.trim(),
           phone,
           obraSocial,
@@ -192,6 +199,9 @@ const InlineAppointmentForm = ({ slot, date, onCancel, onSaved }: Props) => {
             className="h-6 text-xs w-20"
             onKeyDown={handleKeyDown}
           />
+          <label className="flex items-center gap-0.5 text-[10px] shrink-0" title="Recién nacido: usa el DNI de la madre">
+            <input type="checkbox" checked={dniMaterno} onChange={(e) => { setDniMaterno(e.target.checked); if (e.target.checked) setPatientId(null); }} />RN
+          </label>
           <Button variant="ghost" size="sm" className="h-5 w-5 p-0 shrink-0" onClick={lookupDni} title="Buscar por DNI">
             <Search className="w-3 h-3" />
           </Button>

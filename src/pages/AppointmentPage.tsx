@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { STATUS_LABELS, type StudyStatus, formatStudyType } from '@/types/medical';
 import TemplateSelector from '@/components/TemplateSelector';
 import TemplateSuggestion from '@/components/TemplateSuggestion';
+import ReportVersionsDialog from '@/components/ReportVersionsDialog';
 import { suggestTemplates } from '@/data/studyTemplateMap';
 import StudyTypeSelector from '@/components/StudyTypeSelector';
 import RichTextEditor from '@/components/RichTextEditor';
@@ -139,6 +140,7 @@ const AppointmentPage = () => {
 
   // Sugerencia de plantilla: una sola vez al abrir un estudio sin informe
   const [showSuggestion, setShowSuggestion] = useState(false);
+  const [showVersions, setShowVersions] = useState(false);
   const suggestionAsked = useRef(false);
   useEffect(() => {
     if (suggestionAsked.current || isReadOnly || detailLoading || !appointment) return;
@@ -1093,6 +1095,9 @@ const AppointmentPage = () => {
               Informe {isReadOnly && <span className="text-xs text-muted-foreground">(solo lectura)</span>}
             </h2>
             <div className="flex flex-wrap gap-2">
+              {!isViewer && (
+                <Button variant="outline" size="sm" onClick={() => setShowVersions(true)}>Versiones</Button>
+              )}
               {!isReadOnly && (
                 <>
                   <Button variant="outline" size="sm" disabled={isOtherDoctorsReport} onClick={() => setShowTemplates(true)}>
@@ -1127,6 +1132,14 @@ const AppointmentPage = () => {
             />
           )}
 
+
+          <ReportVersionsDialog
+            appointmentId={id || ''}
+            open={showVersions}
+            onOpenChange={setShowVersions}
+            canRestore={!isReadOnly && !isOtherDoctorsReport}
+            onRestore={(html) => { setReport(html); setIsEditing(true); }}
+          />
 
           <TemplateSuggestion
             open={showSuggestion}

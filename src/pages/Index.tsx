@@ -45,11 +45,11 @@ const Index = () => {
     (async () => {
       const { data, error } = await supabase
         .from('appointments')
-        .select('patient_id, patients(id, dni)');
+        .select('patient_id, patients(id, dni, dni_materno)');
       if (cancelled || error || !data) return;
       const counts = new Map<string, number>();
-      for (const row of data as { patient_id: string; patients: { id: string; dni: string | null } | null }[]) {
-        const dniKey = normalizeDni(row.patients?.dni);
+      for (const row of data as { patient_id: string; patients: { id: string; dni: string | null; dni_materno: boolean | null } | null }[]) {
+        const dniKey = row.patients?.dni_materno ? '' : normalizeDni(row.patients?.dni);
         const key = dniKey ? `dni:${dniKey}` : `patient:${row.patient_id}`;
         counts.set(key, (counts.get(key) || 0) + 1);
       }

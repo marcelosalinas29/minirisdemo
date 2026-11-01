@@ -10,6 +10,8 @@ export interface Patient {
   phone: string;
   fechaNacimiento?: string; // ISO date
   obraSocial?: string;
+  dniTipo?: string; // 'DNI' | 'PASAPORTE' | 'OTRO'
+  dniMaterno?: boolean; // recién nacido que usa el DNI de la madre
 }
 
 export interface Appointment {
@@ -43,8 +45,19 @@ export function composePatientName(apellido: string, nombres: string): string {
   return `${apellido.trim()} ${nombres.trim()}`.replace(/\s+/g, ' ').trim();
 }
 
-export function getPatientHistoryKey(patient: Pick<Patient, 'id' | 'dni'>): string {
-  const normalizedDni = normalizeDni(patient.dni);
+/** DNI que sirve para reconocer a la persona. Un recién nacido con DNI de la madre NO se une con ella. */
+export function identityDni(patient: Pick<Patient, 'dni' | 'dniMaterno'>): string {
+  return patient.dniMaterno ? '' : normalizeDni(patient.dni);
+}
+
+export const DNI_TIPOS: { value: string; label: string }[] = [
+  { value: 'DNI', label: 'DNI' },
+  { value: 'PASAPORTE', label: 'Pasaporte' },
+  { value: 'OTRO', label: 'Otro documento' },
+];
+
+export function getPatientHistoryKey(patient: Pick<Patient, 'id' | 'dni' | 'dniMaterno'>): string {
+  const normalizedDni = identityDni(patient);
   return normalizedDni ? `dni:${normalizedDni}` : `patient:${patient.id}`;
 }
 
