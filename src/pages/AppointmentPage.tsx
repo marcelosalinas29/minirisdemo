@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { User, Phone, Calendar, FileText, ImagePlus, Send, Download, Trash2, ChevronDown, Edit2, Save, Pencil, Mic, Sparkles } from 'lucide-react';
+import { ArrowLeft, User, Phone, Calendar, FileText, ImagePlus, Send, Download, Trash2, ChevronDown, Edit2, Save, Pencil, Mic, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { calcularEdad, calcularEdadDetallada, formatEdad, cleanDniInput } from '@/types/medical';
 import AppLayout from '@/components/AppLayout';
@@ -1059,6 +1059,13 @@ const AppointmentPage = () => {
   return (
     <AppLayout title={appointment.patient.name}>
       <div className="p-4 space-y-4 max-w-2xl mx-auto">
+        {/* Volver a donde estabas (el mismo día de la agenda, la búsqueda o el historial) */}
+        <Button
+          variant="ghost" size="sm" className="-mb-2 -ml-2 text-muted-foreground"
+          onClick={() => (window.history.state?.idx > 0 ? navigate(-1) : navigate('/'))}
+        >
+          <ArrowLeft className="w-4 h-4 mr-1" /> Volver
+        </Button>
         {/* Patient Info Card */}
         <div className="bg-card rounded-xl border border-border p-4 shadow-sm space-y-3">
           <div className="flex items-center justify-between">

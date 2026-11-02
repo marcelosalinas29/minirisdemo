@@ -18,12 +18,20 @@ import { getPatientHistoryKey, normalizeDni, isInactiveStatus } from '@/types/me
 import DailyView from '@/components/DailyView';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useSearchParams } from 'react-router-dom';
+import { parseISO, isValid } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
 
 const Index = () => {
   const today = new Date();
   const { role, isViewer } = useAuth();
-  const [selectedDate, setSelectedDate] = useState(today);
+  // El día que se está mirando queda en la dirección (?fecha=), así al volver desde un paciente se vuelve a ese mismo día.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const f = searchParams.get('fecha');
+    const d = f && /^\d{4}-\d{2}-\d{2}$/.test(f) ? parseISO(f) : null;
+    return d && isValid(d) ? d : today;
+  });
   const [selectedDoctorId, setSelectedDoctorId] = useState<string>('all');
   const [testingConnection, setTestingConnection] = useState(false);
   const [blockDialogOpen, setBlockDialogOpen] = useState(false);
@@ -35,6 +43,11 @@ const Index = () => {
   const { doctors, fetchDoctors, fetchAllSchedules, generateAvailableSlots, blockedDates, fetchBlockedDates, addBlockedDate, removeBlockedDate, isDateBlocked } = useScheduleStore();
 
   const dateStr = useMemo(() => format(selectedDate, 'yyyy-MM-dd'), [selectedDate]);
+  useEffect(() => {
+    if (searchParams.get('fecha') !== dateStr) {
+      setSearchParams((prev) => { const n = new URLSearchParams(prev); n.set('fecha', dateStr); return n; }, { replace: true });
+    }
+  }, [dateStr]); // eslint-disable-line react-hooks/exhaustive-deps
   // Días anteriores a los 6 meses cargados: se piden al servidor solo al navegar a esa fecha.
   const [olderDay, setOlderDay] = useState<{ date: string; items: Appointment[] } | null>(null);
   const windowStart = useMemo(() => {
