@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
-import type { Appointment, Patient, StudyStatus } from '@/types/medical';
+import type { Appointment, Patient, StudyStatus, ArrivalState } from '@/types/medical';
 import { calcularEdad, normalizeDni } from '@/types/medical';
 import { trackMutation } from '@/hooks/useRealtimeSync';
 
@@ -24,6 +24,7 @@ interface ClinicStore {
   updateAppointmentDate: (id: string, date: string) => Promise<void>;
   updateAppointmentObservations: (id: string, observations: string) => Promise<void>;
   updateAppointmentAsistio: (id: string, asistio: boolean) => Promise<void>;
+  setArrivalState: (id: string, state: ArrivalState) => Promise<void>;
   deleteAppointment: (id: string) => Promise<void>;
   rescheduleAppointment: (id: string, date: string, time: string) => Promise<void>;
   addImagesToAppointment: (id: string, images: string[]) => Promise<void>;
@@ -42,7 +43,7 @@ interface ClinicStore {
 }
 
 const APPOINTMENTS_WINDOW_DAYS = 180;
-const APPOINTMENT_LIST_COLUMNS = 'id, patient_id, study_type, status, date, time, observations, reported_by, asistio, created_at, created_by, doctor_id, patients(*)';
+const APPOINTMENT_LIST_COLUMNS = 'id, patient_id, study_type, status, date, time, observations, reported_by, asistio, arrival_state, created_at, created_by, doctor_id, patients(*)';
 
 function mapPatient(p: any): Patient {
   return {
@@ -73,6 +74,7 @@ function mapAppointment(a: any): Appointment {
     observations: a.observations || '',
     reportedBy: a.reported_by || null,
     asistio: a.asistio ?? false,
+    arrivalState: (a.arrival_state ?? (a.asistio ? 'arrived' : null)) as ArrivalState,
     createdAt: a.created_at,
     doctorId: a.doctor_id ?? null,
   };
@@ -305,6 +307,16 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
         appointments: s.appointments.map((a) => (a.id === id ? { ...a, asistio } : a)),
       }));
     }
+  },
+
+  setArrivalState: async (id, state) => {
+    trackMutation(id);
+    const asistio = state === 'arrived';
+    const { error } = await supabase.from('appointments').update({ arrival_state: state, asistio } as any).eq('id', id);
+    if (error) throw error;
+    set((s) => ({
+      appointments: s.appointments.map((a) => (a.id === id ? { ...a, arrivalState: state, asistio } : a)),
+    }));
   },
 
   addImagesToAppointment: async (id, images) => {

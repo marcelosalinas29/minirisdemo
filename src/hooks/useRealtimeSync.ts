@@ -48,6 +48,7 @@ function mapRealtimeAppointment(row: any, patient: any) {
     observations: row.observations || '',
     reportedBy: row.reported_by || null,
     asistio: row.asistio ?? false,
+    arrivalState: (row.arrival_state ?? (row.asistio ? 'arrived' : null)) as any,
     createdAt: row.created_at,
   };
 }
@@ -103,6 +104,7 @@ export function useRealtimeSync() {
                   observations: newRow.observations ?? a.observations,
                   reportedBy: newRow.reported_by ?? a.reportedBy,
                   asistio: newRow.asistio ?? a.asistio,
+                  arrivalState: ('arrival_state' in newRow ? newRow.arrival_state : a.arrivalState) as any,
                 };
               }),
             };

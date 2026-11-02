@@ -69,7 +69,7 @@ export async function runBackup(root: Dir, onProgress: (p: BackupProgress) => vo
   // 1) Datos
   onProgress({ phase: 'Copiando los datos…', done: 0, total: 1 });
   const patients = await fetchAll('patients', '*');
-  const appointments = await fetchAll('appointments', 'id, patient_id, study_type, status, date, time, report, observations, reported_by, asistio, created_at, created_by, doctor_id, image_urls');
+  const appointments = await fetchAll('appointments', 'id, patient_id, study_type, status, date, time, report, observations, reported_by, asistio, arrival_state, created_at, created_by, doctor_id, image_urls');
   const previos = await fetchAll('estudios_previos', '*');
   const versions = await fetchAll('report_versions', '*').catch((e) => { res.errors.push(String(e.message)); return []; });
   const audit = await fetchAll('audit_log', '*').catch(() => []);

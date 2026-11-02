@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Appointment, StudyStatus } from '@/types/medical';
 import { isInactiveStatus } from '@/types/medical';
-import { STATUS_LABELS, formatStudyType, calcularEdad, calcularEdadDetallada, getStudyDuration } from '@/types/medical';
+import { STATUS_LABELS, ARRIVAL_LABELS, resolveArrival, type ArrivalState, formatStudyType, calcularEdad, calcularEdadDetallada, getStudyDuration } from '@/types/medical';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -79,7 +79,8 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
   const updateAppointmentStatus = useClinicStore((s) => s.updateAppointmentStatus);
   const updateAppointmentObservations = useClinicStore((s) => s.updateAppointmentObservations);
   const updatePatient = useClinicStore((s) => s.updatePatient);
-  const updateAppointmentAsistio = useClinicStore((s) => s.updateAppointmentAsistio);
+  const setArrivalState = useClinicStore((s) => s.setArrivalState);
+  const arrivalOf = (a?: { arrivalState?: ArrivalState; asistio?: boolean } | null): ArrivalState => (a ? resolveArrival(a) : null);
   const deleteAppointment = useClinicStore((s) => s.deleteAppointment);
   const rescheduleAppointment = useClinicStore((s) => s.rescheduleAppointment);
   // fetchAppointments removed — realtime sync handles updates automatically
@@ -334,7 +335,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                   )}
                   <tr
                     key={`row-${slot}-${apt?.id ?? 'libre'}`}
-                    className={`transition-colors ${apt && isInactiveStatus(apt.status) ? 'bg-muted/40 opacity-60' : apt?.asistio ? 'bg-green-100 dark:bg-green-900/30' : extra ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-l-amber-500' : overbook ? 'bg-accent/30 border-l-2 border-l-accent' : isOccupied ? 'bg-card hover:bg-muted/30' : 'opacity-50 hover:opacity-80 hover:bg-muted/20'}`}
+                    className={`transition-colors ${apt && isInactiveStatus(apt.status) ? 'bg-muted/40 opacity-60' : arrivalOf(apt) === 'arrived' ? 'bg-green-100 dark:bg-green-900/30' : arrivalOf(apt) === 'late' ? 'bg-yellow-100 dark:bg-yellow-900/30' : arrivalOf(apt) === 'missed' ? 'bg-red-100 dark:bg-red-900/30' : extra ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-l-amber-500' : overbook ? 'bg-accent/30 border-l-2 border-l-accent' : isOccupied ? 'bg-card hover:bg-muted/30' : 'opacity-50 hover:opacity-80 hover:bg-muted/20'}`}
                   >
                     <td className="p-1.5 border border-border font-mono text-center text-muted-foreground font-semibold">
                       {slot}
@@ -469,19 +470,46 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                             </div>
                           ) : (
                             <div className="flex items-center justify-center gap-0.5">
-                              {!apt.asistio && (
-                                <Button
-                                  variant="ghost" size="sm" className="h-6 w-6 p-0"
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    updateAppointmentAsistio(apt.id, true);
-                                    toast.success(`${apt.patient.name} confirmado/a en sala`);
-                                  }}
-                                  title="Confirmar recepción"
-                                >
-                                  <UserCheck className="w-3 h-3 text-green-600" />
-                                </Button>
-                              )}
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <Button
+                                    variant="ghost" size="sm" className="h-6 w-6 p-0"
+                                    onClick={(e) => e.stopPropagation()}
+                                    title={arrivalOf(apt) ? ARRIVAL_LABELS[arrivalOf(apt) as 'arrived' | 'late' | 'missed'] : 'Marcar llegada'}
+                                  >
+                                    <UserCheck className={`w-3 h-3 ${arrivalOf(apt) === 'arrived' ? 'text-green-600' : arrivalOf(apt) === 'late' ? 'text-yellow-500' : arrivalOf(apt) === 'missed' ? 'text-red-600' : 'text-muted-foreground'}`} />
+                                  </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-48 p-1" align="end" onClick={(e) => e.stopPropagation()}>
+                                  {([
+                                    ['arrived', 'bg-green-500'],
+                                    ['late', 'bg-yellow-400'],
+                                    ['missed', 'bg-red-500'],
+                                  ] as const).map(([st, dot]) => (
+                                    <button
+                                      key={st}
+                                      className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-muted text-left"
+                                      onClick={async () => {
+                                        try {
+                                          await setArrivalState(apt.id, st);
+                                          toast.success(`${apt.patient.name}: ${ARRIVAL_LABELS[st].toLowerCase()}`);
+                                        } catch { toast.error('No se pudo guardar'); }
+                                      }}
+                                    >
+                                      <span className={`w-3 h-3 rounded-full ${dot}`} />
+                                      {ARRIVAL_LABELS[st]}{arrivalOf(apt) === st ? ' ✓' : ''}
+                                    </button>
+                                  ))}
+                                  {arrivalOf(apt) && (
+                                    <button
+                                      className="w-full px-2 py-1.5 text-sm rounded hover:bg-muted text-left text-muted-foreground border-t border-border mt-1"
+                                      onClick={async () => {
+                                        try { await setArrivalState(apt.id, null); toast.success('Llegada sin marcar'); } catch { toast.error('No se pudo guardar'); }
+                                      }}
+                                    >Sin marcar</button>
+                                  )}
+                                </PopoverContent>
+                              </Popover>
                               <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => startEdit(apt)} title="Editar">
                                 <Edit2 className="w-3 h-3 text-muted-foreground" />
                               </Button>

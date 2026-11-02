@@ -9,7 +9,7 @@ interface Row { id: string; created_at: string; user_id: string | null; action: 
 
 const ACTION: Record<string, string> = { insert: 'Creó', update: 'Modificó', delete: 'Eliminó', view: 'Vio' };
 const ENTITY: Record<string, string> = { appointments: 'un turno', patients: 'un paciente', estudios_previos: 'un estudio previo' };
-const FIELD: Record<string, string> = { status: 'estado', date: 'fecha', time: 'hora', doctor_id: 'médico', study_type: 'estudio', observations: 'observaciones', report: 'informe', reported_by: 'firmante', asistio: 'asistencia' };
+const FIELD: Record<string, string> = { status: 'estado', date: 'fecha', time: 'hora', doctor_id: 'médico', study_type: 'estudio', observations: 'observaciones', report: 'informe', reported_by: 'firmante', asistio: 'asistencia', arrival_state: 'llegada' };
 
 const AuditPage = () => {
   const { isAdmin } = useAuth();

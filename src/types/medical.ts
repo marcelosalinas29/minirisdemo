@@ -7,6 +7,17 @@ export function isInactiveStatus(status: string): boolean {
 
 export type StudyType = string;
 
+/** Llegada del paciente a la sala: llegó (verde), demorado / avisó (amarillo), no llegó (rojo). null = sin marcar. */
+export type ArrivalState = 'arrived' | 'late' | 'missed' | null;
+export const ARRIVAL_LABELS: Record<'arrived' | 'late' | 'missed', string> = {
+  arrived: 'Llegó',
+  late: 'Demorado / avisó',
+  missed: 'No llegó',
+};
+export function resolveArrival(a: { arrivalState?: ArrivalState; asistio?: boolean }): ArrivalState {
+  return a.arrivalState ?? (a.asistio ? 'arrived' : null);
+}
+
 export interface Patient {
   id: string;
   dni: string;
@@ -33,6 +44,7 @@ export interface Appointment {
   observations?: string;
   reportedBy?: string | null;
   asistio: boolean;
+  arrivalState?: ArrivalState; // llegada del paciente: null = sin marcar
   createdAt: string;
   doctorId?: string | null; // médico asignado al turno (los turnos viejos no tienen)
 }
