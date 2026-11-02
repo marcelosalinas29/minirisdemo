@@ -1276,7 +1276,7 @@ const AppointmentPage = () => {
             </>
           ) : (
             <div
-              className="bg-muted/50 rounded-lg p-4 prose prose-sm max-w-none text-foreground"
+              className="bg-muted/50 rounded-lg p-4 prose prose-sm dark:prose-invert max-w-none text-foreground"
               dangerouslySetInnerHTML={{ __html: report }}
             />
           )}

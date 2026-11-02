@@ -65,7 +65,7 @@ const ReportVersionsDialog = ({ appointmentId, open, onOpenChange, canRestore, o
               {format(new Date(selected.created_at), "d MMM yyyy HH:mm", { locale: es })}
               {selected.saved_by && names[selected.saved_by] ? ` · ${names[selected.saved_by]}` : ''}
             </p>
-            <div className="bg-muted/50 rounded-lg p-3 prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: selected.report }} />
+            <div className="bg-muted/50 rounded-lg p-3 prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{ __html: selected.report }} />
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setSelected(null)}>Volver a la lista</Button>
               {canRestore && (

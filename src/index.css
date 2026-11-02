@@ -173,6 +173,24 @@
   box-shadow: 0 2px 14px hsl(210 100% 55% / 0.25);
 }
 
+/* Informe mostrado (solo lectura, versiones, editor) en modo oscuro: negritas y texto en blanco */
+.dark .prose,
+.dark .prose :where(p, li, span) {
+  color: hsl(210 30% 94%);
+}
+.dark .prose :where(strong, b),
+.dark .prose :where(strong, b) * {
+  color: #ffffff;
+  font-weight: 700;
+}
+.dark .prose [style*="color: rgb(0, 0, 0)"],
+.dark .prose [style*="color:#000"],
+.dark .prose [style*="color: #000"],
+.dark .prose [style*="color: black"],
+.dark .prose [style*="color:black"] {
+  color: inherit !important;
+}
+
 /* Editor de informes en modo oscuro: negritas y texto en blanco (un texto pegado con color negro explícito también) */
 .dark .ProseMirror,
 .dark .ProseMirror p,
