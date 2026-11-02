@@ -40,8 +40,8 @@ const STATUS_LABEL: Record<Status, string> = {
   'en-sistema': 'Ya está en el sistema', respaldo: 'Respaldo de la app', error: 'Error',
 };
 const STATUS_STYLE: Record<Status, string> = {
-  listo: 'bg-green-100 text-green-800', revisar: 'bg-yellow-100 text-yellow-800', pendiente: 'bg-orange-100 text-orange-800',
-  repetido: 'bg-gray-100 text-gray-700', 'en-sistema': 'bg-gray-100 text-gray-700', respaldo: 'bg-gray-100 text-gray-700', error: 'bg-red-100 text-red-800',
+  listo: 'bg-green-100 text-green-800 dark:bg-green-500/20 dark:text-green-300', revisar: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/20 dark:text-yellow-300', pendiente: 'bg-orange-100 text-orange-800 dark:bg-orange-500/20 dark:text-orange-300',
+  repetido: 'bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300', 'en-sistema': 'bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300', respaldo: 'bg-gray-100 text-gray-700 dark:bg-gray-500/20 dark:text-gray-300', error: 'bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300',
 };
 const PAGE_SIZE = 50;
 

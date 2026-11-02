@@ -7,6 +7,7 @@ import { useClinicStore } from '@/store/useClinicStore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import CommunicationCenter, { useChatUnread } from '@/components/CommunicationCenter';
 import { Badge } from '@/components/ui/badge';
+import ThemeToggle from '@/components/ThemeToggle';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -62,6 +63,7 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
             <p className="text-xs text-primary-foreground/60 truncate">{title}</p>
           </div>
           <div className="flex items-center gap-2">
+            <ThemeToggle />
             {showComm && (
               <button
                 onClick={() => {

@@ -52,6 +52,52 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
+
+  .dark {
+    --background: 215 28% 9%;
+    --foreground: 210 20% 92%;
+
+    --action-primary: 224 76% 60%;
+
+    --card: 215 26% 13%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 215 26% 13%;
+    --popover-foreground: 210 20% 92%;
+
+    --primary: 215 55% 24%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 20% 19%;
+    --secondary-foreground: 210 20% 92%;
+
+    --muted: 215 20% 17%;
+    --muted-foreground: 213 14% 66%;
+
+    --accent: 195 60% 42%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 65% 52%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 16% 24%;
+    --input: 215 16% 24%;
+    --ring: 215 55% 55%;
+
+    --status-pending: 40 90% 55%;
+    --status-in-study: 215 60% 60%;
+    --status-reported: 195 60% 50%;
+    --status-sent: 152 60% 48%;
+
+    --sidebar-background: 215 26% 11%;
+    --sidebar-foreground: 210 20% 88%;
+    --sidebar-primary: 210 20% 92%;
+    --sidebar-primary-foreground: 215 28% 9%;
+    --sidebar-accent: 215 20% 17%;
+    --sidebar-accent-foreground: 210 20% 92%;
+    --sidebar-border: 215 16% 24%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
 }
 
 @layer base {
@@ -67,16 +113,16 @@
 
 @layer utilities {
   .status-badge-pending {
-    @apply bg-amber-50 text-amber-700 border-amber-200;
+    @apply bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30;
   }
   .status-badge-in-study {
-    @apply bg-blue-50 text-blue-800 border-blue-200;
+    @apply bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30;
   }
   .status-badge-reported {
-    @apply bg-cyan-50 text-cyan-800 border-cyan-200;
+    @apply bg-cyan-50 text-cyan-800 border-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-300 dark:border-cyan-500/30;
   }
   .status-badge-sent {
-    @apply bg-emerald-50 text-emerald-700 border-emerald-200;
+    @apply bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30;
   }
   .btn-whatsapp {
     @apply bg-emerald-600 hover:bg-emerald-700 text-white;

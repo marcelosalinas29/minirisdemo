@@ -1121,7 +1121,7 @@ const AppointmentPage = () => {
           ) : (
             <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
               {!appointment.patient.fechaNacimiento && (
-                <span className="col-span-2 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 rounded px-2 py-1 flex items-center justify-between gap-2">
+                <span className="col-span-2 text-xs font-semibold text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-500/15 border border-amber-200 rounded px-2 py-1 flex items-center justify-between gap-2">
                   ⚠ Falta la fecha de nacimiento (obligatoria para enviar el informe)
                   {!isReadOnly && <button className="underline" onClick={() => setEditingPatient(true)}>Completar</button>}
                 </span>

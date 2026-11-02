@@ -1,6 +1,10 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { applyTheme, getStoredTheme } from "./lib/theme";
+
+// Modo claro u oscuro elegido en este dispositivo (antes de dibujar la pantalla, para que no parpadee)
+applyTheme(getStoredTheme());
 
 createRoot(document.getElementById("root")!).render(<App />);
 
