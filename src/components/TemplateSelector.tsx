@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import MyTemplatesDialog from '@/components/MyTemplatesDialog';
 import { studyForTemplate } from '@/data/studyTemplateMap';
+import { EMPTY_SETTINGS, fetchMySettings } from '@/lib/doctorSettings';
+import { applyParagraphStyle } from '@/lib/reportStyle';
 import { fetchMyTemplates, type DoctorTemplate } from '@/lib/doctorTemplates';
 import { REPORT_TEMPLATES } from '@/data/reportTemplates';
 import { Button } from '@/components/ui/button';
@@ -11,7 +13,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { FileText, Plus } from 'lucide-react';
 
 /** Convert plain text template to proper HTML with <p> tags per line */
-export function textToHtml(text: string): string {
+export function textToHtml(text: string, opts: { sectionBold?: boolean; labelBold?: boolean } = {}): string {
+  const sectionBold = opts.sectionBold ?? true;
+  const labelBold = opts.labelBold ?? true;
   return text
     .split('\n')
     .map(line => {
@@ -20,12 +24,12 @@ export function textToHtml(text: string): string {
       // Detect lines that look like section headers (ALL CAPS or ending with colon at start)
       const isHeader = /^[A-ZÁÉÍÓÚÑÜ\s\-()\/]+:?$/.test(trimmed) && trimmed.length < 60;
       if (isHeader) {
-        return `<p><strong>${trimmed}</strong></p>`;
+        return sectionBold ? `<p><strong>${trimmed}</strong></p>` : `<p>${trimmed}</p>`;
       }
       // Detect label: value pattern (e.g. "Hígado: texto...")
       const labelMatch = trimmed.match(/^([A-Za-záéíóúñüÁÉÍÓÚÑÜ\s\-()\/]+:)\s*(.*)/);
       if (labelMatch) {
-        return `<p><strong>${labelMatch[1]}</strong> ${labelMatch[2]}</p>`;
+        return labelBold ? `<p><strong>${labelMatch[1]}</strong> ${labelMatch[2]}</p>` : `<p>${labelMatch[1]} ${labelMatch[2]}</p>`;
       }
       return `<p>${trimmed}</p>`;
     })
@@ -46,16 +50,21 @@ const TemplateSelector = ({ open, onOpenChange, onApply, currentReport }: Templa
   const [selected, setSelected] = useState<string[]>([]);
   const [customTitle, setCustomTitle] = useState('');
   const [mine, setMine] = useState<DoctorTemplate[]>([]);
+  const [settings, setSettings] = useState(EMPTY_SETTINGS);
   const [showMine, setShowMine] = useState(false);
   const [prefill, setPrefill] = useState<{ name: string; html: string; studyType: string } | null>(null);
 
   const loadMine = () => { if (canOwn) fetchMyTemplates().then(setMine).catch(() => setMine([])); };
-  useEffect(() => { if (open) loadMine(); }, [open, canOwn]);
+  useEffect(() => {
+    if (!open) return;
+    loadMine();
+    if (canOwn) fetchMySettings().then(setSettings).catch(() => setSettings(EMPTY_SETTINGS));
+  }, [open, canOwn]);
 
   // Lista única: primero las propias, después las de la app.
   const all = [
-    ...mine.map((m) => ({ key: `m${m.id}`, name: m.name, own: true, html: m.content })),
-    ...REPORT_TEMPLATES.filter((t) => !mine.some((m) => m.name === t.name)).map((t, i) => ({ key: `b${t.name}`, name: t.name, own: false, html: textToHtml(t.content) })),
+    ...mine.map((m) => ({ key: `m${m.id}`, name: m.name, own: true, html: applyParagraphStyle(m.content, settings.style) })),
+    ...REPORT_TEMPLATES.filter((t) => !mine.some((m) => m.name === t.name)).map((t, i) => ({ key: `b${t.name}`, name: t.name, own: false, html: applyParagraphStyle(textToHtml(t.content, { sectionBold: settings.style.sectionBold, labelBold: settings.style.labelBold }), settings.style) })),
   ];
 
   const toggleTemplate = (key: string) => {

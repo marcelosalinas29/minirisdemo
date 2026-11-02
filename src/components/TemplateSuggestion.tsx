@@ -1,61 +1,51 @@
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { suggestTemplates } from '@/data/studyTemplateMap';
-import { textToHtml } from '@/components/TemplateSelector';
-import { studyTitle } from '@/types/medical';
+import { formatStudyType } from '@/types/medical';
 import type { DoctorTemplate } from '@/lib/doctorTemplates';
+import { EMPTY_SETTINGS, type DoctorSettings } from '@/lib/doctorSettings';
+import { buildReportHtml, optionHtml, optionsForStudy } from '@/lib/templateResolve';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   studyType: string;
-  own?: DoctorTemplate[]; // plantillas propias del médico que corresponden a este turno
+  own?: DoctorTemplate[]; // todas las plantillas propias del médico
+  settings?: DoctorSettings;
   onApply: (html: string) => void;
   onChooseOther: () => void;
 }
 
-/** Al abrir un estudio sin informe: propone la plantilla del tipo de estudio, pidiendo confirmación. */
-/** Varios estudios en un turno: cada uno con su título en negrita y mayúscula, separados por una línea en blanco. */
-export function buildMultiStudyHtml(studyType: string, own: DoctorTemplate[] = []): string {
-  const blocks: string[] = [];
-  for (const part of studyType.split(' + ').map((x) => x.trim()).filter(Boolean)) {
-    const mine = own.find((o) => o.studyType === part);
-    const t = suggestTemplates(part)[0];
-    const body = mine ? mine.content : t ? textToHtml(t.content) : '';
-    if (!body) continue;
-    blocks.push(`<p><strong>${studyTitle(part)}</strong></p>${body}`);
-  }
-  return blocks.join('<p></p>');
-}
-
-const TemplateSuggestion = ({ open, onOpenChange, studyType, own = [], onApply, onChooseOther }: Props) => {
-  const options = suggestTemplates(studyType).filter((t) => !own.some((o) => o.name === t.name && o.studyType));
-  const withoutTemplate = studyType.split(' + ').map((s) => s.trim()).filter((s) => s && suggestTemplates(s).length === 0 && !own.some((o) => o.studyType === s));
+/** Plantilla propuesta para el estudio del turno, pidiendo confirmación (cuando no hay una por defecto elegida). */
+const TemplateSuggestion = ({ open, onOpenChange, studyType, own = [], settings = EMPTY_SETTINGS, onApply, onChooseOther }: Props) => {
+  const parts = studyType.split(' + ').map((s) => s.trim()).filter(Boolean);
+  const withTemplates = parts.filter((p) => optionsForStudy(p, own).length > 0);
+  const withoutTemplate = parts.filter((p) => optionsForStudy(p, own).length === 0);
+  const style = settings.style;
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm">
+      <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>¿Usar una plantilla?</DialogTitle>
-          <DialogDescription>Estudio: {studyType}</DialogDescription>
+          <DialogDescription>Estudio: {formatStudyType(studyType)}</DialogDescription>
         </DialogHeader>
         <div className="space-y-2">
           {withoutTemplate.length > 0 && (
-            <p className="text-xs text-amber-700">Sin plantilla (se escribe a mano): {withoutTemplate.join(', ')}</p>
+            <p className="text-xs text-amber-700">Sin plantilla (se escribe a mano): {withoutTemplate.map((p) => formatStudyType(p)).join(', ')}</p>
           )}
-          {options.length + own.length > 1 && (
-            <Button className="w-full justify-start" onClick={() => { onApply(studyType.includes(' + ') ? buildMultiStudyHtml(studyType, own) : [...own.map((o) => o.content), ...options.map((t) => textToHtml(t.content))].join('<p></p>')); onOpenChange(false); }}>
-              {studyType.includes(' + ') ? `Usar todos los estudios (${studyType.split(' + ').length})` : `Usar todas (${options.length + own.length})`}
+          {parts.length > 1 && withTemplates.length > 0 && (
+            <Button className="w-full justify-start" onClick={() => { onApply(buildReportHtml(studyType, own, settings)); onOpenChange(false); }}>
+              Usar todos los estudios ({withTemplates.length})
             </Button>
           )}
-          {own.map((o) => (
-            <Button key={o.id} className="w-full justify-start" onClick={() => { onApply(o.content); onOpenChange(false); }}>
-              {o.name} (mía)
-            </Button>
-          ))}
-          {options.map((t) => (
-            <Button key={t.name} className="w-full justify-start" onClick={() => { onApply(textToHtml(t.content)); onOpenChange(false); }}>
-              {t.name}
-            </Button>
+          {withTemplates.map((p) => (
+            <div key={p} className="space-y-1.5">
+              {parts.length > 1 && <p className="text-xs font-semibold uppercase pt-1">{formatStudyType(p)}</p>}
+              {optionsForStudy(p, own).map((o) => (
+                <Button key={o.ref} className="w-full justify-start" onClick={() => { onApply(optionHtml(o, style)); onOpenChange(false); }}>
+                  {o.name}{o.own ? ' (mía)' : ''}
+                </Button>
+              ))}
+            </div>
           ))}
           <Button variant="outline" className="w-full" onClick={() => { onOpenChange(false); onChooseOther(); }}>Elegir otra plantilla</Button>
           <Button variant="ghost" className="w-full" onClick={() => onOpenChange(false)}>Empezar en blanco</Button>

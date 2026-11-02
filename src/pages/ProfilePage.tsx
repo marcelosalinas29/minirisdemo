@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import { Save, PenLine, Camera, Clock, ShieldCheck } from 'lucide-react';
 
 const ProfilePage = () => {
-  const { profile, role, isDoctor, isSecretary, isAdmin, user, refreshProfile } = useAuth();
+  const { profile, role, isDoctor, isSecretary, isViewer, isAdmin, user, refreshProfile } = useAuth();
   const navigate = useNavigate();
 
   const [fullName, setFullName] = useState(profile?.full_name ?? '');
@@ -182,6 +182,11 @@ const ProfilePage = () => {
               </Button>
             )}
 
+            {!isSecretary && !isViewer && (
+              <Button variant="outline" className="w-full" onClick={() => navigate('/mi-estilo')}>
+                Mi estilo de informe y plantillas por defecto
+              </Button>
+            )}
             {isAdmin && (
               <Button variant="outline" className="w-full" onClick={() => navigate('/respaldo')}>
                 Respaldo de datos y archivos

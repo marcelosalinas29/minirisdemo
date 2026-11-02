@@ -14,6 +14,7 @@ import HistoryPage from "./pages/HistoryPage";
 import ImportStudiesPage from "./pages/ImportStudiesPage";
 import AuditPage from "./pages/AuditPage";
 import BackupPage from "./pages/BackupPage";
+import MyStylePage from "./pages/MyStylePage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ConsultorPage from "./pages/ConsultorPage";
 import PatientsPage from "./pages/PatientsPage";
@@ -53,6 +54,7 @@ const App = () => (
                 <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                 <Route path="/appointment/:id" element={<ProtectedRoute><AppointmentPageKeyed /></ProtectedRoute>} />
                 <Route path="/consultor" element={<ProtectedRoute><ConsultorPage /></ProtectedRoute>} />
+                <Route path="/mi-estilo" element={<ProtectedRoute><MyStylePage /></ProtectedRoute>} />
                 <Route path="/respaldo" element={<ProtectedRoute><BackupPage /></ProtectedRoute>} />
                 <Route path="/auditoria" element={<ProtectedRoute><AuditPage /></ProtectedRoute>} />
                 <Route path="/importar" element={<ProtectedRoute><ImportStudiesPage /></ProtectedRoute>} />

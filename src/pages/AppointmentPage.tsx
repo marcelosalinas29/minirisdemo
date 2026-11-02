@@ -13,7 +13,10 @@ import TemplateSelector from '@/components/TemplateSelector';
 import TemplateSuggestion from '@/components/TemplateSuggestion';
 import ReportVersionsDialog from '@/components/ReportVersionsDialog';
 import { suggestTemplates } from '@/data/studyTemplateMap';
-import { fetchMyTemplates, templatesForStudy, type DoctorTemplate } from '@/lib/doctorTemplates';
+import { fetchMyTemplates, type DoctorTemplate } from '@/lib/doctorTemplates';
+import { EMPTY_SETTINGS, fetchMySettings, type DoctorSettings } from '@/lib/doctorSettings';
+import { applyParagraphStyle } from '@/lib/reportStyle';
+import { buildReportHtml, canAutoLoad, optionsForStudy } from '@/lib/templateResolve';
 import StudyTypeSelector from '@/components/StudyTypeSelector';
 import RichTextEditor from '@/components/RichTextEditor';
 import DictationPanel from '@/components/DictationPanel';
@@ -154,20 +157,37 @@ const AppointmentPage = () => {
   const [showVersions, setShowVersions] = useState(false);
   const suggestionAsked = useRef(false);
   const [ownTemplates, setOwnTemplates] = useState<DoctorTemplate[]>([]);
+  const [mySettings, setMySettings] = useState<DoctorSettings>(EMPTY_SETTINGS);
   useEffect(() => {
     if (suggestionAsked.current || isReadOnly || detailLoading || !appointment) return;
     suggestionAsked.current = true;
     if (!(isReportEmpty(appointment.report || '') && isReportEmpty(report))) return;
     const hasBuiltIn = suggestTemplates(appointment.studyType).length > 0;
     if (isSecretary || isViewer) { if (hasBuiltIn) setShowSuggestion(true); return; }
-    fetchMyTemplates()
-      .catch(() => [] as DoctorTemplate[])
-      .then((mine) => {
-        const own = templatesForStudy(mine, appointment.studyType);
-        setOwnTemplates(own);
-        if (hasBuiltIn || own.length > 0) setShowSuggestion(true);
-      });
+    Promise.all([
+      fetchMyTemplates().catch(() => [] as DoctorTemplate[]),
+      fetchMySettings().catch(() => EMPTY_SETTINGS),
+    ]).then(([mine, settings]) => {
+      setOwnTemplates(mine);
+      setMySettings(settings);
+      const parts = appointment.studyType.split(' + ').map((x) => x.trim()).filter(Boolean);
+      const anyTemplate = parts.some((p) => optionsForStudy(p, mine).length > 0);
+      if (!anyTemplate) return;
+      if (canAutoLoad(appointment.studyType, mine, settings)) {
+        // Plantilla por defecto elegida por el médico: se carga sola, con aviso para cambiarla.
+        applyTemplate(buildReportHtml(appointment.studyType, mine, settings));
+        toast('Se cargó tu plantilla por defecto', { action: { label: 'Cambiar', onClick: () => setShowSuggestion(true) } });
+      } else {
+        setShowSuggestion(true);
+      }
+    });
   }, [detailLoading, appointment, isReadOnly]);
+
+  // Estilo del médico (para el botón "Aplicar mi estilo" en informes ya escritos)
+  useEffect(() => {
+    if (isSecretary || isViewer) return;
+    fetchMySettings().then(setMySettings).catch(() => {});
+  }, [isSecretary, isViewer]);
 
   // Autoguardado: guarda el borrador 3 segundos después de dejar de escribir.
   // No cambia el estado del turno (eso sigue haciéndolo "Guardar Informe").
@@ -488,7 +508,7 @@ const AppointmentPage = () => {
     y += 8;
 
     interface TextSegment { text: string; bold: boolean; italic: boolean; underline: boolean; }
-    interface PdfParagraph { segments: TextSegment[]; lineHeight: number; align: 'left' | 'center' | 'right'; }
+    interface PdfParagraph { segments: TextSegment[]; lineHeight: number; align: 'left' | 'center' | 'right' | 'justify'; }
 
     const parseHtmlToPdfParagraphs = (html: string): PdfParagraph[] => {
       const container = document.createElement('div');
@@ -521,7 +541,7 @@ const AppointmentPage = () => {
 
       const processBlock = (el: HTMLElement) => {
         const lh = parseFloat(el.style.lineHeight) || 1.6;
-        const align = (el.style.textAlign || 'left') as 'left' | 'center' | 'right';
+        const align = (['center', 'right', 'justify'].includes(el.style.textAlign) ? el.style.textAlign : 'left') as 'left' | 'center' | 'right' | 'justify';
         const rawSegments = extractSegments(el, { bold: false, italic: false, underline: false });
         const subParas: TextSegment[][] = [[]];
         for (const seg of rawSegments) {
@@ -583,7 +603,8 @@ const AppointmentPage = () => {
       // which is what was pushing the signature onto its own near-empty page.
       const paragraphSpacingLong = 4.2 * scale;
       const paragraphSpacingShort = 1.5 * scale;
-      for (const para of paras) {
+      for (let pi = 0; pi < paras.length; pi++) {
+        const para = paras[pi];
         if (para.segments.length === 0) {
           y += baseLine * (para.lineHeight / 1.6) * 0.6;
           continue;
@@ -595,7 +616,18 @@ const AppointmentPage = () => {
         const wrappedLines = doc.splitTextToSize(fullText, contentWidth);
         let globalCharIdx = 0;
 
-        for (const wLine of wrappedLines) {
+        // Un título (una línea corta, toda en negrita) no puede quedar solo al final de una hoja:
+        // si no entran además al menos 2 renglones del texto que sigue, pasa a la hoja siguiente.
+        const isHeading = wrappedLines.length === 1 && fullText.length < 90 && para.segments.every(sg => sg.bold || !sg.text.trim());
+        if (isHeading && pi < paras.length - 1) {
+          if (y + lineSpacing * 3 + paragraphSpacingShort > bottomLimit) { drawFooter(false); doc.addPage(); y = 20; }
+        }
+
+        for (let li = 0; li < wrappedLines.length; li++) {
+          const wLine = wrappedLines[li];
+          // Control de renglón suelto: nunca queda un solo renglón de un párrafo solo en la hoja siguiente
+          // (así la firma siempre acompaña a por lo menos 2 renglones de texto).
+          if (li === wrappedLines.length - 2 && wrappedLines.length >= 4 && y + lineSpacing > bottomLimit) { drawFooter(false); doc.addPage(); y = 20; }
           if (y > bottomLimit) { drawFooter(false); doc.addPage(); y = 20; }
 
           // Calculate actual line width for alignment
@@ -618,6 +650,10 @@ const AppointmentPage = () => {
             if (tso >= seg.text.length) { tsi++; tso = 0; }
           }
 
+          const isJustified = para.align === 'justify' && li < wrappedLines.length - 1 && wLine.includes(' ');
+          const gaps = isJustified ? (wLine.match(/ /g) || []).length : 0;
+          const extraPerGap = isJustified && gaps > 0 ? Math.max(0, (contentWidth - calcWidth) / gaps) : 0;
+
           let xStart = margin;
           if (para.align === 'center') xStart = margin + (contentWidth - calcWidth) / 2;
           else if (para.align === 'right') xStart = margin + contentWidth - calcWidth;
@@ -638,8 +674,23 @@ const AppointmentPage = () => {
             const runText = wLine.substring(linePos, linePos + runLen);
             const fontStyle = seg.bold && seg.italic ? 'bolditalic' : seg.bold ? 'bold' : seg.italic ? 'italic' : 'normal';
             doc.setFont('helvetica', fontStyle);
-            doc.text(runText, xPos, y);
-            const tw = doc.getTextWidth(runText);
+            let tw: number;
+            if (extraPerGap > 0) {
+              // Justificado: se reparte el espacio sobrante entre las palabras.
+              const startX = xPos;
+              const spaceW = doc.getTextWidth(' ');
+              for (const tok of runText.split(/( )/)) {
+                if (tok === '') continue;
+                if (tok === ' ') { xPos += spaceW + extraPerGap; continue; }
+                doc.text(tok, xPos, y);
+                xPos += doc.getTextWidth(tok);
+              }
+              tw = xPos - startX;
+              xPos = startX;
+            } else {
+              doc.text(runText, xPos, y);
+              tw = doc.getTextWidth(runText);
+            }
             if (seg.underline) {
               doc.setLineWidth(0.3);
               doc.setDrawColor(0, 0, 0);
@@ -1184,6 +1235,7 @@ const AppointmentPage = () => {
             onOpenChange={setShowSuggestion}
             studyType={appointment?.studyType || ''}
             own={ownTemplates}
+            settings={mySettings}
             onApply={applyTemplate}
             onChooseOther={() => setShowTemplates(true)}
           />
@@ -1197,6 +1249,14 @@ const AppointmentPage = () => {
 
           {isEditing || !report ? (
             <>
+              {!isReadOnly && !isSecretary && !isViewer && !isReportEmpty(report) && (
+                <div className="flex justify-end mb-1">
+                  <Button
+                    type="button" variant="ghost" size="sm" className="h-7 text-xs"
+                    onClick={() => { setReport(applyParagraphStyle(report, mySettings.style)); toast.success('Estilo aplicado'); }}
+                  >Aplicar mi estilo</Button>
+                </div>
+              )}
               <RichTextEditor
                 content={report}
                 onChange={setReport}
