@@ -214,6 +214,27 @@ export type Database = {
         }
         Relationships: []
       }
+      doctor_settings: {
+        Row: {
+          default_templates: Json
+          report_style: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          default_templates?: Json
+          report_style?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          default_templates?: Json
+          report_style?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       doctor_templates: {
         Row: {
           content: string
