@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       appointments: {
         Row: {
+          arrival_state: string | null
           asistio: boolean
           created_at: string
           created_by: string | null
@@ -33,6 +34,7 @@ export type Database = {
           time: string
         }
         Insert: {
+          arrival_state?: string | null
           asistio?: boolean
           created_at?: string
           created_by?: string | null
@@ -50,6 +52,7 @@ export type Database = {
           time: string
         }
         Update: {
+          arrival_state?: string | null
           asistio?: boolean
           created_at?: string
           created_by?: string | null
