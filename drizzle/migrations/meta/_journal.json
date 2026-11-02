@@ -85,6 +85,13 @@
       "when": 1793584822246,
       "tag": "0011_create_doctor_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793588626140,
+      "tag": "0012_appointments_add_arrival_state",
+      "breakpoints": true
     }
   ]
 }
