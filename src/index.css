@@ -54,49 +54,49 @@
   }
 
   .dark {
-    --background: 215 28% 9%;
-    --foreground: 210 20% 92%;
+    --background: 225 45% 6%;
+    --foreground: 210 30% 94%;
 
-    --action-primary: 224 76% 60%;
+    --action-primary: 217 100% 62%;
 
-    --card: 215 26% 13%;
-    --card-foreground: 210 20% 92%;
+    --card: 225 38% 10%;
+    --card-foreground: 210 30% 94%;
 
-    --popover: 215 26% 13%;
-    --popover-foreground: 210 20% 92%;
+    --popover: 225 38% 11%;
+    --popover-foreground: 210 30% 94%;
 
-    --primary: 215 55% 24%;
+    --primary: 221 78% 30%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 215 20% 19%;
-    --secondary-foreground: 210 20% 92%;
+    --secondary: 225 30% 16%;
+    --secondary-foreground: 210 30% 94%;
 
-    --muted: 215 20% 17%;
-    --muted-foreground: 213 14% 66%;
+    --muted: 225 28% 14%;
+    --muted-foreground: 215 20% 70%;
 
-    --accent: 195 60% 42%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 190 95% 45%;
+    --accent-foreground: 225 45% 6%;
 
-    --destructive: 0 65% 52%;
+    --destructive: 0 75% 56%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 16% 24%;
-    --input: 215 16% 24%;
-    --ring: 215 55% 55%;
+    --border: 217 70% 32%;
+    --input: 217 60% 30%;
+    --ring: 190 100% 55%;
 
-    --status-pending: 40 90% 55%;
-    --status-in-study: 215 60% 60%;
-    --status-reported: 195 60% 50%;
-    --status-sent: 152 60% 48%;
+    --status-pending: 40 95% 58%;
+    --status-in-study: 217 100% 68%;
+    --status-reported: 190 95% 55%;
+    --status-sent: 152 70% 50%;
 
-    --sidebar-background: 215 26% 11%;
-    --sidebar-foreground: 210 20% 88%;
-    --sidebar-primary: 210 20% 92%;
-    --sidebar-primary-foreground: 215 28% 9%;
-    --sidebar-accent: 215 20% 17%;
-    --sidebar-accent-foreground: 210 20% 92%;
-    --sidebar-border: 215 16% 24%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 225 40% 8%;
+    --sidebar-foreground: 210 30% 90%;
+    --sidebar-primary: 210 30% 94%;
+    --sidebar-primary-foreground: 225 45% 6%;
+    --sidebar-accent: 225 28% 14%;
+    --sidebar-accent-foreground: 210 30% 94%;
+    --sidebar-border: 217 70% 32%;
+    --sidebar-ring: 190 100% 55%;
   }
 }
 
@@ -154,4 +154,40 @@
 .ProseMirror ul:last-child,
 .ProseMirror ol:last-child {
   margin-bottom: 0;
+}
+
+/* Modo oscuro: detalle "neón" suave (borde azul brillante y leve resplandor) */
+.dark .card-elevated,
+.dark [role="dialog"],
+.dark [data-radix-popper-content-wrapper] > * {
+  box-shadow: 0 0 0 1px hsl(217 90% 55% / 0.35), 0 0 14px hsl(210 100% 55% / 0.14);
+}
+.dark input:focus-visible,
+.dark textarea:focus-visible,
+.dark select:focus-visible,
+.dark button:focus-visible {
+  box-shadow: 0 0 0 2px hsl(190 100% 55% / 0.6), 0 0 10px hsl(190 100% 55% / 0.35);
+}
+.dark header.bg-primary {
+  border-bottom: 1px solid hsl(217 90% 55% / 0.55);
+  box-shadow: 0 2px 14px hsl(210 100% 55% / 0.25);
+}
+
+/* Editor de informes en modo oscuro: negritas y texto en blanco (un texto pegado con color negro explícito también) */
+.dark .ProseMirror,
+.dark .ProseMirror p,
+.dark .ProseMirror li {
+  color: hsl(210 30% 94%);
+}
+.dark .ProseMirror strong,
+.dark .ProseMirror b {
+  color: #ffffff;
+  font-weight: 700;
+}
+.dark .ProseMirror [style*="color: rgb(0, 0, 0)"],
+.dark .ProseMirror [style*="color:#000"],
+.dark .ProseMirror [style*="color: #000"],
+.dark .ProseMirror [style*="color: black"],
+.dark .ProseMirror [style*="color:black"] {
+  color: inherit !important;
 }

@@ -501,7 +501,7 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
       {/* Editor area with Spanish spellcheck */}
       <EditorContent
         editor={editor}
-        className="prose prose-sm max-w-none p-4 min-h-[200px] focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[200px]"
+        className="prose prose-sm dark:prose-invert max-w-none p-4 min-h-[200px] focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[200px]"
         spellCheck
         lang="es"
       />
