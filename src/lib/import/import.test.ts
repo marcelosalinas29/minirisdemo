@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { Blob as NodeBlob } from 'buffer';
+import { Blob as NodeBlob } from 'node:buffer';
 import { listZipEntries, readZipEntry } from './zipReader';
 import { docxToText, parseReportText, parseFileName, looksLikeAppBackup, matchPatients, sha256Hex } from './studyParser';
 

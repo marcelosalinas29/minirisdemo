@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { Blob as NodeBlob } from 'buffer';
+import { Blob as NodeBlob } from 'node:buffer';
 
 const tables: Record<string, any[]> = {
   patients: [{ id: 'p1', name: 'PEREZ JUAN', dni: '123' }],
