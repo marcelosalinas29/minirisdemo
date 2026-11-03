@@ -188,6 +188,11 @@ const ProfilePage = () => {
               </Button>
             )}
             {isAdmin && (
+              <Button variant="outline" className="w-full" onClick={() => navigate('/exportar')}>
+                Exportar a Excel (por fechas)
+              </Button>
+            )}
+            {isAdmin && (
               <Button variant="outline" className="w-full" onClick={() => navigate('/respaldo')}>
                 Respaldo de datos y archivos
               </Button>

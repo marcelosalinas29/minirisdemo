@@ -14,6 +14,7 @@ import HistoryPage from "./pages/HistoryPage";
 import ImportStudiesPage from "./pages/ImportStudiesPage";
 import AuditPage from "./pages/AuditPage";
 import BackupPage from "./pages/BackupPage";
+import ExportPage from "./pages/ExportPage";
 import MyStylePage from "./pages/MyStylePage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import ConsultorPage from "./pages/ConsultorPage";
@@ -56,6 +57,7 @@ const App = () => (
                 <Route path="/consultor" element={<ProtectedRoute><ConsultorPage /></ProtectedRoute>} />
                 <Route path="/mi-estilo" element={<ProtectedRoute><MyStylePage /></ProtectedRoute>} />
                 <Route path="/respaldo" element={<ProtectedRoute><BackupPage /></ProtectedRoute>} />
+                <Route path="/exportar" element={<ProtectedRoute><ExportPage /></ProtectedRoute>} />
                 <Route path="/auditoria" element={<ProtectedRoute><AuditPage /></ProtectedRoute>} />
                 <Route path="/importar" element={<ProtectedRoute><ImportStudiesPage /></ProtectedRoute>} />
                 <Route path="/historial" element={<ProtectedRoute><HistoryPage /></ProtectedRoute>} />

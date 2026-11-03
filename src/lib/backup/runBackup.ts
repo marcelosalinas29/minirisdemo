@@ -15,7 +15,7 @@ async function sub(dir: Dir, path: string): Promise<{ dir: Dir; name: string }> 
   return { dir: d, name: safeName(name, 160) };
 }
 
-async function exists(dir: Dir, path: string): Promise<boolean> {
+export async function exists(dir: Dir, path: string): Promise<boolean> {
   try {
     const { dir: d, name } = await sub(dir, path);
     const f = await (await d.getFileHandle(name)).getFile();
@@ -23,21 +23,21 @@ async function exists(dir: Dir, path: string): Promise<boolean> {
   } catch { return false; }
 }
 
-async function writeFile(dir: Dir, path: string, data: Blob | string): Promise<void> {
+export async function writeFile(dir: Dir, path: string, data: Blob | string): Promise<void> {
   const { dir: d, name } = await sub(dir, path);
   const fh = await d.getFileHandle(name, { create: true });
   const w = await fh.createWritable();
   try { await w.write(data); } finally { await w.close(); }
 }
 
-async function pool<T>(list: T[], size: number, fn: (x: T) => Promise<void>) {
+export async function pool<T>(list: T[], size: number, fn: (x: T) => Promise<void>) {
   let next = 0;
   await Promise.all(Array.from({ length: Math.min(size, list.length) }, async () => {
     while (next < list.length) { const i = next++; await fn(list[i]); }
   }));
 }
 
-async function fetchAll(table: string, columns: string, order = 'id'): Promise<any[]> {
+export async function fetchAll(table: string, columns: string, order = 'id'): Promise<any[]> {
   const out: any[] = [];
   const PAGE = 1000;
   for (let page = 0; ; page++) {
@@ -50,7 +50,7 @@ async function fetchAll(table: string, columns: string, order = 'id'): Promise<a
   return out;
 }
 
-async function listBucket(bucket: string): Promise<string[]> {
+export async function listBucket(bucket: string): Promise<string[]> {
   const names: string[] = [];
   for (let offset = 0; ; offset += 1000) {
     const { data, error } = await supabase.storage.from(bucket).list('', { limit: 1000, offset, sortBy: { column: 'name', order: 'asc' } });
