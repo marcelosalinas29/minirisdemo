@@ -5,6 +5,8 @@ import { es } from 'date-fns/locale';
 import AppLayout from '@/components/AppLayout';
 import { useClinicStore } from '@/store/useClinicStore';
 import { useScheduleStore } from '@/store/useScheduleStore';
+import { checkPlacement, secondSlotsOf, type SlottedAppointment } from '@/lib/agendaRules';
+import { verifyPlacement } from '@/lib/agendaCheck';
 import { STUDY_TYPES, DNI_TIPOS, cleanDniInput, composePatientName, calcularEdad, calcularEdadDetallada, getStudyDuration, PHONE_DEFAULT_PREFIX, cleanPhoneInput, hasPhoneNumber, phoneToSave, isInactiveStatus } from '@/types/medical';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,8 +73,13 @@ const NewAppointmentPage = () => {
   // Occupied slots for the selected date
   const occupiedSlots = useMemo(() => {
     const existing = getAppointmentsByDate(dateStr);
-    return new Set(existing.filter(a => !isInactiveStatus(a.status)).map(a => a.time));
+    const taken = new Set(existing.filter(a => !isInactiveStatus(a.status)).map(a => a.time));
+    // El segundo turno de un estudio doble también queda ocupado
+    secondSlotsOf(existing as SlottedAppointment[]).forEach(t => taken.add(t));
+    return taken;
   }, [dateStr, getAppointmentsByDate]);
+
+  const dayAppointments = useMemo(() => getAppointmentsByDate(dateStr) as SlottedAppointment[], [dateStr, getAppointmentsByDate]);
 
   const suggestions = name.length >= 2 && !selectedPatientId ? searchPatients(name) : [];
 
@@ -166,6 +173,16 @@ const NewAppointmentPage = () => {
 
   const finalTime = showOverride ? overrideTime : time;
 
+  // Si se cambia el estudio a uno de 2 turnos (por ejemplo se agrega Doppler) y el horario elegido ya no alcanza, se descarta
+  useEffect(() => {
+    if (showOverride || !time || !studyTypeStr) return;
+    const fit = checkPlacement(dayAppointments, { time, studyType: studyTypeStr, doctorId: selectedDoctorId, validSlots: availableSlots, interval: baseInterval });
+    if (!fit.ok) {
+      setTime('');
+      toast.error(`${fit.message} Se quitó el horario elegido.`);
+    }
+  }, [studyTypeStr]);
+
   const handleSubmit = async () => {
     const studyType = getStudyTypeString();
     if (!selectedDoctorId) {
@@ -216,6 +233,15 @@ const NewAppointmentPage = () => {
       }
     }
 
+    // Regla de 2 turnos: se verifica contra la agenda real justo antes de guardar (el sobreturno queda exceptuado)
+    {
+      const fit = await verifyPlacement({ date: dateStr, time: finalTime, studyType, doctorId: selectedDoctorId, sobreturno: showOverride, validSlots: availableSlots });
+      if (!fit.ok) {
+        toast.error(fit.message);
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       let patientId = selectedPatientId;
@@ -232,7 +258,7 @@ const NewAppointmentPage = () => {
         patientId = patient.id;
       }
 
-      await addAppointment({ patientId, studyType, date: dateStr, time: finalTime, doctorId: selectedDoctorId || undefined });
+      await addAppointment({ patientId, studyType, date: dateStr, time: finalTime, doctorId: selectedDoctorId || undefined, esSobreturno: showOverride });
       toast.success('Cita creada exitosamente');
       navigate('/');
     } catch (err) {
@@ -442,13 +468,9 @@ const NewAppointmentPage = () => {
               {availableSlots.map((slot, idx) => {
                 const isOccupied = occupiedSlots.has(slot);
                 // Check if selecting this slot would cause overlap (multi-slot)
-                const wouldOverlap = slotsNeeded > 1 && !isOccupied && (() => {
-                  for (let i = 1; i < slotsNeeded; i++) {
-                    const nextSlot = availableSlots[idx + i];
-                    if (!nextSlot || occupiedSlots.has(nextSlot)) return true;
-                  }
-                  return false;
-                })();
+                // Un estudio de 2 turnos solo se puede dar donde el siguiente está libre
+                const fit = checkPlacement(dayAppointments, { time: slot, studyType: studyTypeStr, doctorId: selectedDoctorId, validSlots: availableSlots, interval: baseInterval });
+                const wouldOverlap = !isOccupied && !fit.ok;
                 const isSelected = time === slot && !showOverride;
                 // Highlight blocked slots when a slot is selected
                 const isBlockedBySelection = !showOverride && time && slotsNeeded > 1 && (() => {
@@ -459,7 +481,7 @@ const NewAppointmentPage = () => {
                   <button
                     key={slot}
                     onClick={() => { setTime(slot); setShowOverride(false); }}
-                    disabled={isOccupied}
+                    disabled={isOccupied || wouldOverlap}
                     className={cn(
                       "text-xs font-mono py-2 px-1 rounded-lg border transition-all",
                       isSelected
@@ -472,7 +494,7 @@ const NewAppointmentPage = () => {
                               ? "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-800"
                               : "bg-card border-border hover:border-primary/50 hover:bg-primary/5"
                     )}
-                    title={wouldOverlap ? 'No hay suficientes slots consecutivos' : undefined}
+                    title={wouldOverlap ? fit.message : undefined}
                   >
                     {slot}
                   </button>

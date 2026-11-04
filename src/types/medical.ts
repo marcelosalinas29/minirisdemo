@@ -47,6 +47,7 @@ export interface Appointment {
   arrivalState?: ArrivalState; // llegada del paciente: null = sin marcar
   createdAt: string;
   doctorId?: string | null; // médico asignado al turno (los turnos viejos no tienen)
+  esSobreturno?: boolean; // se atiende por encima de la agenda: no ocupa ni bloquea horarios
 }
 
 export function normalizeDni(dni?: string | null): string {

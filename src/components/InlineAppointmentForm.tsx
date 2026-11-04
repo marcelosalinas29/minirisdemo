@@ -5,7 +5,8 @@ import { useClinicStore } from '@/store/useClinicStore';
 import { toast } from 'sonner';
 import { Check, X, Search, FileText } from 'lucide-react';
 import StudyTypeSelector from '@/components/StudyTypeSelector';
-import { calcularEdadDetallada, getStudyDuration, cleanDniInput, composePatientName, normalizeDni, PHONE_DEFAULT_PREFIX, cleanPhoneInput, phoneToSave } from '@/types/medical';
+import { verifyPlacement } from '@/lib/agendaCheck';
+import { calcularEdadDetallada, cleanDniInput, composePatientName, normalizeDni, PHONE_DEFAULT_PREFIX, cleanPhoneInput, phoneToSave } from '@/types/medical';
 
 interface Props {
   slot: string;
@@ -102,38 +103,13 @@ const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Prop
       }
     }
 
-    // B: if it's a special study (Doppler / TN / Morfológica / Scan Fetal),
-    // verify the next 10-min slot on the same date isn't already taken.
+    // Regla de 2 turnos: un estudio doble (Doppler, morfológica, TN, scan fetal...) solo entra si el turno siguiente está libre.
+    // Se verifica contra la agenda real. Si es un turno repetido que el usuario confirmó, se trata como sobreturno.
     const effectiveStudy = studyType || 'ECOGRAFIA';
-    const duration = getStudyDuration(effectiveStudy, 10);
-    if (duration > 10) {
-      const [hh, mm] = slot.split(':').map(Number);
-      const total = hh * 60 + mm + 10;
-      const nextSlot = `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
-      const sameDay = store.getAppointmentsByDate(date);
-      const occupied = new Set(sameDay.map(a => a.time));
-      if (occupied.has(nextSlot)) {
-        // Suggest the first pair of consecutive free slots in the standard day ranges (08-13 and 15-21).
-        const candidates: string[] = [];
-        for (const [from, to] of [[8, 13], [15, 21]] as const) {
-          for (let h = from; h < to; h++) for (let m = 0; m < 60; m += 10) {
-            candidates.push(`${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`);
-          }
-        }
-        let suggestion = '';
-        for (let i = 0; i < candidates.length - 1; i++) {
-          if (!occupied.has(candidates[i]) && !occupied.has(candidates[i + 1])) {
-            suggestion = candidates[i];
-            break;
-          }
-        }
-        toast.error(
-          suggestion
-            ? `Este estudio requiere 20 min y ${nextSlot} ya está ocupado. Probá a las ${suggestion}.`
-            : `Este estudio requiere 20 min y ${nextSlot} ya está ocupado. No hay huecos consecutivos hoy.`
-        );
-        return;
-      }
+    const fit = await verifyPlacement({ date, time: slot, studyType: effectiveStudy, doctorId, sobreturno: existingSameSlot.length > 0 });
+    if (!fit.ok) {
+      toast.error(fit.message);
+      return;
     }
 
     setSaving(true);
@@ -159,6 +135,7 @@ const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Prop
         time: slot,
         observations: observations.trim() || undefined,
         doctorId,
+        esSobreturno: existingSameSlot.length > 0,
       });
       toast.success('Turno confirmado');
       onSaved();

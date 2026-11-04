@@ -8,7 +8,8 @@ import { calcularEdad, calcularEdadDetallada, formatEdad, cleanDniInput } from '
 import AppLayout from '@/components/AppLayout';
 import { useClinicStore } from '@/store/useClinicStore';
 import { useAuth } from '@/contexts/AuthContext';
-import { STATUS_LABELS, type StudyStatus, formatStudyType } from '@/types/medical';
+import { STATUS_LABELS, type StudyStatus, formatStudyType, isInactiveStatus } from '@/types/medical';
+import { verifyPlacement } from '@/lib/agendaCheck';
 import TemplateSelector from '@/components/TemplateSelector';
 import TemplateSuggestion from '@/components/TemplateSuggestion';
 import ReportVersionsDialog from '@/components/ReportVersionsDialog';
@@ -70,6 +71,7 @@ const AppointmentPage = () => {
   const updateAppointmentStatus = useClinicStore((s) => s.updateAppointmentStatus);
   const updateAppointmentReport = useClinicStore((s) => s.updateAppointmentReport);
   const updateAppointmentStudyType = useClinicStore((s) => s.updateAppointmentStudyType);
+  const updateAppointmentSchedule = useClinicStore((s) => s.updateAppointmentSchedule);
   const updatePatient = useClinicStore((s) => s.updatePatient);
   const addImagesToAppointment = useClinicStore((s) => s.addImagesToAppointment);
   const addStorageImagesToAppointment = useClinicStore((s) => s.addStorageImagesToAppointment);
@@ -243,14 +245,38 @@ const AppointmentPage = () => {
 
   const handleStatusChange = async (status: StudyStatus) => {
     if (!id) return;
-    await updateAppointmentStatus(id, status);
-    toast.success(`Estado actualizado a: ${STATUS_LABELS[status]}`);
+    // Reactivar un turno cancelado o ausente: el horario puede haber sido tomado mientras tanto
+    if (appointment && isInactiveStatus(appointment.status) && !isInactiveStatus(status) && !appointment.esSobreturno) {
+      const fit = await verifyPlacement({ id, date: appointment.date, time: appointment.time, studyType: appointment.studyType, doctorId: appointment.doctorId });
+      if (!fit.ok) {
+        toast.error(`No se puede reactivar el turno. ${fit.message}`);
+        return;
+      }
+    }
+    try {
+      await updateAppointmentSchedule(id, { status });
+      toast.success(`Estado actualizado a: ${STATUS_LABELS[status]}`);
+    } catch (err: any) {
+      toast.error(err?.message ? `No se pudo cambiar el estado: ${err.message}` : 'No se pudo cambiar el estado');
+    }
   };
 
   const handleStudyTypeChange = async (studyType: string) => {
     if (!id) return;
-    await updateAppointmentStudyType(id, studyType);
-    toast.success('Tipo de estudio actualizado');
+    // Regla de 2 turnos: si el nuevo estudio es doble (Doppler...), el turno siguiente tiene que estar libre
+    if (appointment && !appointment.esSobreturno && !isInactiveStatus(appointment.status)) {
+      const fit = await verifyPlacement({ id, date: appointment.date, time: appointment.time, studyType, doctorId: appointment.doctorId });
+      if (!fit.ok) {
+        toast.error(`No se puede cambiar a ese estudio. ${fit.message}`);
+        return;
+      }
+    }
+    try {
+      await updateAppointmentStudyType(id, studyType);
+      toast.success('Tipo de estudio actualizado');
+    } catch (err: any) {
+      toast.error(err?.message ? `No se pudo cambiar el estudio: ${err.message}` : 'No se pudo cambiar el estudio');
+    }
   };
 
   const compressImage = (file: File, maxWidth = 800, quality = 0.7): Promise<Blob> => {

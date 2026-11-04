@@ -5,6 +5,8 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Appointment, StudyStatus } from '@/types/medical';
 import { isInactiveStatus } from '@/types/medical';
+import { checkPlacement, type SlottedAppointment } from '@/lib/agendaRules';
+import { verifyPlacement } from '@/lib/agendaCheck';
 import { STATUS_LABELS, ARRIVAL_LABELS, resolveArrival, type ArrivalState, formatStudyType, calcularEdad, calcularEdadDetallada, getStudyDuration } from '@/types/medical';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -83,6 +85,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
   const arrivalOf = (a?: { arrivalState?: ArrivalState; asistio?: boolean } | null): ArrivalState => (a ? resolveArrival(a) : null);
   const deleteAppointment = useClinicStore((s) => s.deleteAppointment);
   const rescheduleAppointment = useClinicStore((s) => s.rescheduleAppointment);
+  const updateAppointmentSchedule = useClinicStore((s) => s.updateAppointmentSchedule);
   // fetchAppointments removed — realtime sync handles updates automatically
   const getAppointmentsByDate = useClinicStore((s) => s.getAppointmentsByDate);
   const { generateAvailableSlots, schedules, doctors } = useScheduleStore();
@@ -136,7 +139,11 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
       .filter(a => a.id !== rescheduleTarget.id)
       .map(a => a.time);
     const occupiedSet = new Set(occupied);
-    return slots.filter(s => !occupiedSet.has(s));
+    // Regla de 2 turnos: solo se ofrecen horarios donde el estudio entra (el segundo turno de un estudio doble no se ofrece)
+    const dayList = getAppointmentsByDate(rescheduleDateStr) as SlottedAppointment[];
+    return slots.filter(s => !occupiedSet.has(s) && checkPlacement(dayList, {
+      id: rescheduleTarget.id, time: s, studyType: rescheduleTarget.studyType, doctorId: rescheduleTarget.doctorId, validSlots: slots,
+    }).ok);
   }, [rescheduleTarget, rescheduleDate, doctors, schedules, doctorSlots, selectedDoctorId, getAppointmentsByDate]);
 
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
@@ -210,9 +217,24 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
 
   const saveEdit = async (apt: Appointment) => {
     try {
-      if (editData.time !== apt.time) await updateAppointmentTime(apt.id, editData.time);
-      if (editData.studyType !== apt.studyType) await updateAppointmentStudyType(apt.id, editData.studyType);
-      if (editData.status !== apt.status) await updateAppointmentStatus(apt.id, editData.status);
+      const timeChanged = editData.time !== apt.time;
+      const studyChanged = editData.studyType !== apt.studyType;
+      const statusChanged = editData.status !== apt.status;
+      const reactivated = statusChanged && isInactiveStatus(apt.status) && !isInactiveStatus(editData.status);
+      // Regla de 2 turnos: si cambia la hora, el estudio (por ejemplo "ecografía" pasa a "Doppler") o se reactiva un turno cancelado,
+      // el resultado final tiene que entrar en la agenda. Se verifica antes de tocar nada.
+      if ((timeChanged || studyChanged || reactivated) && !isInactiveStatus(editData.status) && !apt.esSobreturno) {
+        const fit = await verifyPlacement({ id: apt.id, date: apt.date, time: editData.time, studyType: editData.studyType, doctorId: apt.doctorId });
+        if (!fit.ok) {
+          toast.error(fit.message);
+          return;
+        }
+      }
+      await updateAppointmentSchedule(apt.id, {
+        ...(timeChanged ? { time: editData.time } : {}),
+        ...(studyChanged ? { studyType: editData.studyType } : {}),
+        ...(statusChanged ? { status: editData.status } : {}),
+      });
       if (editData.observations !== (apt.observations || '')) await updateAppointmentObservations(apt.id, editData.observations);
       const patientChanges: any = {};
       if (editData.patientName !== apt.patient.name) patientChanges.name = editData.patientName;
@@ -223,8 +245,8 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
       if (Object.keys(patientChanges).length > 0) await updatePatient(apt.patientId, patientChanges);
       setEditingId(null);
       toast.success('Cita actualizada');
-    } catch {
-      toast.error('Error al actualizar');
+    } catch (err: any) {
+      toast.error(err?.message ? `No se pudo actualizar: ${err.message}` : 'Error al actualizar');
     }
   };
 
@@ -244,13 +266,21 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
     if (!rescheduleTarget || !rescheduleTime) return;
     try {
       const newDate = format(rescheduleDate, 'yyyy-MM-dd');
+      // Regla de 2 turnos también al pasar el turno a otro día u hora
+      if (!rescheduleTarget.esSobreturno) {
+        const fit = await verifyPlacement({ id: rescheduleTarget.id, date: newDate, time: rescheduleTime, studyType: rescheduleTarget.studyType, doctorId: rescheduleTarget.doctorId });
+        if (!fit.ok) {
+          toast.error(fit.message);
+          return;
+        }
+      }
       await rescheduleAppointment(rescheduleTarget.id, newDate, rescheduleTime);
       toast.success(`Cita trasladada al ${format(rescheduleDate, "d 'de' MMMM", { locale: es })} a las ${rescheduleTime}`);
-    } catch {
-      toast.error('Error al trasladar la cita');
-    } finally {
       setRescheduleTarget(null);
       setRescheduleTime('');
+    } catch (err: any) {
+      // Si no entra o falla, la ventana queda abierta para elegir otro horario
+      toast.error(err?.message ? `No se pudo trasladar: ${err.message}` : 'Error al trasladar la cita');
     }
   };
 
