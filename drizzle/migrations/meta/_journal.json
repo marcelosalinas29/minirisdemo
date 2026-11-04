@@ -92,6 +92,13 @@
       "when": 1793588626140,
       "tag": "0012_appointments_add_arrival_state",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793820765398,
+      "tag": "0013_enforce_double_slot_rule",
+      "breakpoints": true
     }
   ]
 }
