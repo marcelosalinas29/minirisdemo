@@ -26,6 +26,13 @@ export async function saveMyTemplate(t: { name: string; studyType: string | null
   if (error) throw error;
 }
 
+/** Modifica una plantilla propia ya guardada (se puede repetir todas las veces que haga falta). */
+export async function updateMyTemplate(id: string, t: { name: string; studyType: string | null; content: string }): Promise<void> {
+  const { data, error } = await table().update({ name: t.name.trim(), study_type: t.studyType, content: t.content }).eq('id', id).select('id');
+  if (error) throw error;
+  if (!data || data.length === 0) throw new Error('No se pudo modificar la plantilla');
+}
+
 export async function deleteMyTemplate(id: string): Promise<void> {
   const { error } = await table().delete().eq('id', id);
   if (error) throw error;

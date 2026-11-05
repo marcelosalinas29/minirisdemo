@@ -1,10 +1,11 @@
+import { toast } from 'sonner';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import MyTemplatesDialog from '@/components/MyTemplatesDialog';
 import { studyForTemplate } from '@/data/studyTemplateMap';
 import { EMPTY_SETTINGS, fetchMySettings } from '@/lib/doctorSettings';
 import { applyParagraphStyle } from '@/lib/reportStyle';
-import { fetchMyTemplates, type DoctorTemplate } from '@/lib/doctorTemplates';
+import { fetchMyTemplates, deleteMyTemplate, type DoctorTemplate } from '@/lib/doctorTemplates';
 import { REPORT_TEMPLATES } from '@/data/reportTemplates';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -52,7 +53,7 @@ const TemplateSelector = ({ open, onOpenChange, onApply, currentReport }: Templa
   const [mine, setMine] = useState<DoctorTemplate[]>([]);
   const [settings, setSettings] = useState(EMPTY_SETTINGS);
   const [showMine, setShowMine] = useState(false);
-  const [prefill, setPrefill] = useState<{ name: string; html: string; studyType: string } | null>(null);
+  const [prefill, setPrefill] = useState<{ id?: string; name: string; html: string; studyType: string } | null>(null);
 
   const loadMine = () => { if (canOwn) fetchMyTemplates().then(setMine).catch(() => setMine([])); };
   useEffect(() => {
@@ -63,7 +64,7 @@ const TemplateSelector = ({ open, onOpenChange, onApply, currentReport }: Templa
 
   // Lista única: primero las propias, después las de la app.
   const all = [
-    ...mine.map((m) => ({ key: `m${m.id}`, name: m.name, own: true, html: applyParagraphStyle(m.content, settings.style) })),
+    ...mine.map((m) => ({ key: `m${m.id}`, id: m.id, raw: m.content, studyType: m.studyType || '', name: m.name, own: true, html: applyParagraphStyle(m.content, settings.style) })),
     ...REPORT_TEMPLATES.filter((t) => !mine.some((m) => m.name === t.name)).map((t, i) => ({ key: `b${t.name}`, name: t.name, own: false, html: applyParagraphStyle(textToHtml(t.content, { sectionBold: settings.style.sectionBold, labelBold: settings.style.labelBold }), settings.style) })),
   ];
 
@@ -142,6 +143,26 @@ const TemplateSelector = ({ open, onOpenChange, onApply, currentReport }: Templa
                       onClick={(e) => { e.preventDefault(); setPrefill({ name: t.name, html: t.html, studyType: studyForTemplate(t.name) }); setShowMine(true); }}
                     >Editar</Button>
                   )}
+                  {canOwn && t.own && 'id' in t && (
+                    <>
+                      <Button
+                        type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs"
+                        onClick={(e) => { e.preventDefault(); setPrefill({ id: (t as any).id, name: t.name, html: (t as any).raw, studyType: (t as any).studyType }); setShowMine(true); }}
+                      >Editar</Button>
+                      {REPORT_TEMPLATES.some((b) => b.name === t.name) && (
+                        <Button
+                          type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs text-muted-foreground"
+                          title="Descarta tus cambios y vuelve a usar la plantilla original de la app"
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            if (!window.confirm(`¿Volver a la plantilla original de la app para "${t.name}"? Se pierden tus cambios en esa plantilla.`)) return;
+                            try { await deleteMyTemplate((t as any).id); setSelected((prev) => prev.filter((k) => k !== t.key)); loadMine(); toast.success('Se restauró la plantilla de la app'); }
+                            catch { toast.error('No se pudo restaurar la plantilla'); }
+                          }}
+                        >Volver a la de la app</Button>
+                      )}
+                    </>
+                  )}
                 </label>
               ))}
             </div>
@@ -155,7 +176,7 @@ const TemplateSelector = ({ open, onOpenChange, onApply, currentReport }: Templa
         </div>
 
         {canOwn && (
-          <Button variant="outline" className="w-full" onClick={() => { setPrefill(null); setShowMine(true); }}>Mis plantillas (agregar / borrar)</Button>
+          <Button variant="outline" className="w-full" onClick={() => { setPrefill(null); setShowMine(true); }}>Mis plantillas (agregar / editar / borrar)</Button>
         )}
         <MyTemplatesDialog open={showMine} onOpenChange={setShowMine} currentReport={currentReport} onChanged={loadMine} prefill={prefill} />
 

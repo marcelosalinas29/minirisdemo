@@ -4,16 +4,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import RichTextEditor from '@/components/RichTextEditor';
 import { toast } from 'sonner';
-import { Trash2, Upload } from 'lucide-react';
+import { Pencil, Trash2, Upload } from 'lucide-react';
 import { STUDY_TYPES, studyTitle } from '@/types/medical';
-import { deleteMyTemplate, fetchMyTemplates, saveMyTemplate, htmlFromFile, type DoctorTemplate } from '@/lib/doctorTemplates';
+import { deleteMyTemplate, fetchMyTemplates, saveMyTemplate, updateMyTemplate, htmlFromFile, type DoctorTemplate } from '@/lib/doctorTemplates';
 
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   currentReport: string; // HTML del informe abierto (para "guardar este informe como plantilla")
   onChanged: () => void;
-  prefill?: { name: string; html: string; studyType: string } | null; // para editar una plantilla de la app y guardar tu versión
+  prefill?: { id?: string; name: string; html: string; studyType: string } | null; // para editar una plantilla (de la app: guarda tu versión; propia: la modifica)
 }
 
 const isEmptyHtml = (h: string) => h.replace(/<[^>]*>/g, '').trim() === '';
@@ -25,14 +25,22 @@ const MyTemplatesDialog = ({ open, onOpenChange, currentReport, onChanged, prefi
   const [studyType, setStudyType] = useState('');
   const [html, setHtml] = useState(''); // contenido de la plantilla, con su formato
   const [busy, setBusy] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null); // plantilla propia que se está modificando
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = () => fetchMyTemplates().then(setList).catch(() => toast.error('No se pudieron cargar tus plantillas'));
   useEffect(() => {
     if (!open) return;
     load();
-    if (prefill) { setName(prefill.name); setStudyType(prefill.studyType); setHtml(prefill.html); }
+    if (prefill) { setEditingId(prefill.id ?? null); setName(prefill.name); setStudyType(prefill.studyType); setHtml(prefill.html); }
+    else { setEditingId(null); setName(''); setStudyType(''); setHtml(''); }
   }, [open, prefill]);
+
+  const startEdit = (t: DoctorTemplate) => {
+    setEditingId(t.id); setName(t.name); setStudyType(t.studyType || ''); setHtml(t.content);
+    setTimeout(() => document.getElementById('mis-plantillas-form')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' }), 50);
+  };
+  const cancelEdit = () => { setEditingId(null); setName(''); setStudyType(''); setHtml(''); };
 
   const onFile = async (file?: File) => {
     if (!file) return;
@@ -50,9 +58,14 @@ const MyTemplatesDialog = ({ open, onOpenChange, currentReport, onChanged, prefi
     if (!canSave) return;
     setBusy(true);
     try {
-      await saveMyTemplate({ name, studyType: studyType || null, content: html });
-      toast.success('Plantilla guardada');
-      setName(''); setStudyType(''); setHtml('');
+      if (editingId) {
+        await updateMyTemplate(editingId, { name, studyType: studyType || null, content: html });
+        toast.success('Cambios guardados');
+      } else {
+        await saveMyTemplate({ name, studyType: studyType || null, content: html });
+        toast.success('Plantilla guardada');
+      }
+      setEditingId(null); setName(''); setStudyType(''); setHtml('');
       await load();
       onChanged();
     } catch {
@@ -64,7 +77,7 @@ const MyTemplatesDialog = ({ open, onOpenChange, currentReport, onChanged, prefi
 
   const remove = async (t: DoctorTemplate) => {
     if (!window.confirm(`¿Borrar tu plantilla "${t.name}"?`)) return;
-    try { await deleteMyTemplate(t.id); await load(); onChanged(); } catch { toast.error('No se pudo borrar'); }
+    try { await deleteMyTemplate(t.id); if (editingId === t.id) cancelEdit(); await load(); onChanged(); } catch { toast.error('No se pudo borrar'); }
   };
 
   return (
@@ -83,13 +96,17 @@ const MyTemplatesDialog = ({ open, onOpenChange, currentReport, onChanged, prefi
                 <p className="text-sm font-medium truncate">{t.name}</p>
                 <p className="text-xs text-muted-foreground truncate">{t.studyType ? studyTitle(t.studyType) : 'Sin estudio asignado'}</p>
               </div>
-              <Button size="icon" variant="ghost" onClick={() => remove(t)} aria-label="Borrar"><Trash2 className="w-4 h-4" /></Button>
+              <div className="flex shrink-0">
+                <Button size="icon" variant="ghost" onClick={() => startEdit(t)} aria-label="Editar"><Pencil className="w-4 h-4" /></Button>
+                <Button size="icon" variant="ghost" onClick={() => remove(t)} aria-label="Borrar"><Trash2 className="w-4 h-4" /></Button>
+              </div>
             </div>
           ))}
         </div>
 
-        <div className="space-y-3 border-t border-border pt-3">
-          <p className="text-sm font-semibold">Agregar plantilla</p>
+        <div id="mis-plantillas-form" className="space-y-3 border-t border-border pt-3">
+          <p className="text-sm font-semibold">{editingId ? 'Editando plantilla' : 'Agregar plantilla'}</p>
+          {editingId && <p className="text-xs text-muted-foreground">Estás modificando una plantilla que ya guardaste. Los informes ya hechos no cambian.</p>}
           <Input placeholder="Nombre de la plantilla" value={name} onChange={(e) => setName(e.target.value)} />
           <select
             className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
@@ -115,7 +132,8 @@ const MyTemplatesDialog = ({ open, onOpenChange, currentReport, onChanged, prefi
               Traer el informe abierto
             </Button>
           )}
-          <Button className="w-full" disabled={!canSave || busy} onClick={save}>Guardar plantilla</Button>
+          <Button className="w-full" disabled={!canSave || busy} onClick={save}>{editingId ? 'Guardar cambios' : 'Guardar plantilla'}</Button>
+          {editingId && <Button variant="ghost" className="w-full" onClick={cancelEdit}>Cancelar edición</Button>}
         </div>
       </DialogContent>
     </Dialog>
