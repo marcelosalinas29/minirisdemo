@@ -30,6 +30,7 @@ export type Database = {
           patient_id: string
           report: string | null
           reported_by: string | null
+          sobreturno_acordado_con: string | null
           status: string
           study_type: string
           time: string
@@ -49,6 +50,7 @@ export type Database = {
           patient_id: string
           report?: string | null
           reported_by?: string | null
+          sobreturno_acordado_con?: string | null
           status?: string
           study_type?: string
           time: string
@@ -68,6 +70,7 @@ export type Database = {
           patient_id?: string
           report?: string | null
           reported_by?: string | null
+          sobreturno_acordado_con?: string | null
           status?: string
           study_type?: string
           time?: string
@@ -187,6 +190,45 @@ export type Database = {
           created_at?: string
           id?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      doctor_schedule_exceptions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date_from: string
+          date_to: string
+          doctor_id: string
+          end_time: string | null
+          id: string
+          kind: string
+          reason: string | null
+          start_time: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date_from: string
+          date_to: string
+          doctor_id: string
+          end_time?: string | null
+          id?: string
+          kind: string
+          reason?: string | null
+          start_time?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date_from?: string
+          date_to?: string
+          doctor_id?: string
+          end_time?: string | null
+          id?: string
+          kind?: string
+          reason?: string | null
+          start_time?: string | null
         }
         Relationships: []
       }
@@ -517,6 +559,10 @@ export type Database = {
           study_date: string
           study_type: string
         }[]
+      }
+      doctor_works_at: {
+        Args: { _date: string; _doctor: string; _time: string }
+        Returns: boolean
       }
       get_user_role: {
         Args: { _user_id: string }

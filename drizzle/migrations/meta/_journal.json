@@ -99,6 +99,13 @@
       "when": 1793820765398,
       "tag": "0013_enforce_double_slot_rule",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794319939006,
+      "tag": "0014_agenda_horario_medico_excepciones",
+      "breakpoints": true
     }
   ]
 }
