@@ -1,0 +1,1 @@
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.doctor_schedule_exceptions TO authenticated;
