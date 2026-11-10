@@ -14,6 +14,8 @@ describe('regla de 2 turnos', () => {
     expect(slotsNeeded('Ecografía Abdominal + Doppler Renal')).toBe(2);
     expect(slotsNeeded('Ecografía de Partes Blandas')).toBe(1);
     expect(slotsNeeded('Ecografía Abdominal')).toBe(1);
+    expect(slotsNeeded('Punción Aspiración con Aguja Fina (PAAF) guiada por Ecografía')).toBe(3);
+    expect(slotsNeeded('Biopsia con Aguja Gruesa (Trucut) guiada por Ecografía')).toBe(3);
   });
 
   it('un Doppler no entra si el turno siguiente está ocupado', () => {
@@ -80,8 +82,24 @@ describe('regla de 2 turnos', () => {
     expect(checkPlacement(day, { time: '15:00', studyType: 'Doppler Venoso', validSlots: SLOTS }).ok).toBe(false);
   });
 
-  it('turnos de otro médico no interfieren', () => {
+  it('un solo ecógrafo: los turnos de otro médico también cuentan', () => {
     const day = [A('1', '15:10', 'Ecografía Abdominal', { doctorId: 'dr-b' })];
-    expect(checkPlacement(day, { time: '15:00', studyType: 'Doppler Arterial', doctorId: 'dr-a', validSlots: SLOTS }).ok).toBe(true);
+    expect(checkPlacement(day, { time: '15:00', studyType: 'Doppler Arterial', doctorId: 'dr-a', validSlots: SLOTS }).ok).toBe(false);
+  });
+
+  it('una punción ocupa 3 turnos: no entra si el 2º o el 3º están ocupados', () => {
+    const PAAF = 'Punción Aspiración con Aguja Fina (PAAF) guiada por Ecografía';
+    expect(checkPlacement([A('1', '15:20', 'Ecografía Abdominal')], { time: '15:00', studyType: PAAF, validSlots: SLOTS }).code).toBe('next_taken');
+    expect(checkPlacement([A('1', '15:10', 'Ecografía Abdominal')], { time: '15:00', studyType: PAAF, validSlots: SLOTS }).code).toBe('next_taken');
+    expect(checkPlacement([A('1', '15:30', 'Ecografía Abdominal')], { time: '15:00', studyType: PAAF, validSlots: SLOTS }).ok).toBe(true);
+  });
+
+  it('el 2º y el 3º turno de una punción quedan bloqueados, y entra de nuevo a los 30 min', () => {
+    const PAAF = 'Punción Aspiración con Aguja Fina (PAAF) guiada por Ecografía';
+    const day = [A('1', '15:00', PAAF)];
+    expect([...secondSlotsOf(day)]).toEqual(['15:10', '15:20']);
+    expect(checkPlacement(day, { time: '15:20', studyType: 'Ecografía Abdominal', validSlots: SLOTS }).code).toBe('inside_other');
+    expect(checkPlacement(day, { time: '15:30', studyType: 'Ecografía Abdominal', validSlots: SLOTS }).ok).toBe(true);
+    expect(checkPlacement(day, { time: '15:20', studyType: 'Ecografía Abdominal', sobreturno: true }).ok).toBe(true);
   });
 });

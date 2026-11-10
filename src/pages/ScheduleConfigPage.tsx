@@ -11,6 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { Plus, Trash2, Clock, Timer } from 'lucide-react';
+import ScheduleExceptions from '@/components/ScheduleExceptions';
 
 const DAYS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
 const INTERVAL_OPTIONS = [5, 10, 15, 20, 30];
@@ -28,10 +29,9 @@ const ScheduleConfigPage = () => {
   const [savingInterval, setSavingInterval] = useState(false);
 
   useEffect(() => {
-    if (isSecretary) {
-      fetchDoctors();
-      fetchAllSchedules();
-    } else if (user && isDoctor) {
+    fetchDoctors();
+    fetchAllSchedules();
+    if (!isSecretary && user && isDoctor) {
       setSelectedDoctorId(user.id);
       fetchSchedules(user.id);
     }
@@ -238,6 +238,8 @@ const ScheduleConfigPage = () => {
             </div>
           ))}
         </div>
+
+        <ScheduleExceptions defaultDoctorId={selectedDoctorId || undefined} />
 
         <Button variant="outline" className="w-full" onClick={() => navigate(-1)}>
           Volver

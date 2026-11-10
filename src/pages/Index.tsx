@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { format, addDays, subDays, getDay } from 'date-fns';
+import { format, addDays, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronLeft, ChevronRight, CalendarDays, Wifi, Ban, ShieldOff } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
@@ -40,7 +40,7 @@ const Index = () => {
   const fetchAppointments = useClinicStore((s) => s.fetchAppointments);
   const fetchPatients = useClinicStore((s) => s.fetchPatients);
   const loading = useClinicStore((s) => s.loading);
-  const { doctors, fetchDoctors, fetchAllSchedules, generateAvailableSlots, blockedDates, fetchBlockedDates, addBlockedDate, removeBlockedDate, isDateBlocked } = useScheduleStore();
+  const { doctors, fetchDoctors, fetchAllSchedules, slotsOnDate, fetchExceptions, exceptions, blockedDates, fetchBlockedDates, addBlockedDate, removeBlockedDate, isDateBlocked } = useScheduleStore();
 
   const dateStr = useMemo(() => format(selectedDate, 'yyyy-MM-dd'), [selectedDate]);
   useEffect(() => {
@@ -66,9 +66,10 @@ const Index = () => {
 
   const dayAppointments = useMemo(() => {
     const source = olderDay && olderDay.date === dateStr ? olderDay.items : allAppointments;
-    // Con un médico elegido: sus turnos y los viejos sin médico asignado
+    // Con un médico elegido: sus turnos, los viejos sin médico asignado y SIEMPRE todos los sobreturnos
+    // (de cualquier médico: un sobreturno nunca se esconde).
     return source
-      .filter(a => a.date === dateStr && (selectedDoctorId === 'all' || !a.doctorId || a.doctorId === selectedDoctorId))
+      .filter(a => a.date === dateStr && (selectedDoctorId === 'all' || !a.doctorId || a.doctorId === selectedDoctorId || a.esSobreturno))
       .sort((x, y) => x.time.localeCompare(y.time));
   }, [allAppointments, olderDay, dateStr, selectedDoctorId]);
   // Set completo de pacientes con historial por DNI normalizado (incluye estudios fuera de la ventana del store).
@@ -114,6 +115,7 @@ const Index = () => {
         fetchDoctors(),
         fetchAllSchedules(),
         fetchBlockedDates(),
+        fetchExceptions(),
       ]);
       if (cancelled) return;
       const failed = results.filter(r => r.status === 'rejected');
@@ -127,10 +129,13 @@ const Index = () => {
 
   // Realtime is now handled globally by useRealtimeSync hook in App.tsx
 
-  const dayOfWeek = getDay(selectedDate);
+  // Con "todos": horarios de todos los médicos juntos (el médico de cada turno se asigna solo según quién atiende a esa hora)
   const doctorSlots = selectedDoctorId !== 'all'
-    ? generateAvailableSlots(selectedDoctorId, dayOfWeek)
-    : null;
+    ? slotsOnDate(selectedDoctorId, dateStr)
+    : (() => {
+        const u = [...new Set(doctors.flatMap((d) => slotsOnDate(d.userId, dateStr)))].sort();
+        return u.length > 0 ? u : null;
+      })();
 
   const currentDateBlocked = isDateBlocked(dateStr);
   const currentBlockedDate = blockedDates.find(b => b.date === dateStr);
@@ -259,15 +264,6 @@ const Index = () => {
                 Motivo: {currentBlockedDate?.reason || 'Sin motivo'}
               </p>
             </div>
-          </div>
-        )}
-
-        {doctors.length > 1 && selectedDoctorId === 'all' && !currentDateBlocked && (
-          <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-lg p-3 flex items-start gap-2">
-            <Ban className="w-4 h-4 text-amber-700 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-            <p className="text-sm text-amber-800 dark:text-amber-300">
-              <span className="font-semibold">Estás viendo todos los médicos.</span> Los horarios mostrados son genéricos y pueden no coincidir con la disponibilidad real de cada médico. Para asignar nuevos turnos, primero filtrá por médico arriba.
-            </p>
           </div>
         )}
 

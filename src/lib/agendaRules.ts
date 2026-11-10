@@ -1,10 +1,11 @@
 import { getStudyDuration, isInactiveStatus } from '@/types/medical';
 
 /**
- * REGLA DE LA AGENDA: un estudio de 2 turnos (Doppler, morfológica, TN, scan fetal, test endotelial)
- * ocupa su horario y el siguiente. Solo se puede dar si el siguiente está libre, y ese segundo turno
+ * REGLA DE LA AGENDA: un estudio de varios turnos (Doppler, morfológica, TN, scan fetal, test endotelial = 2;
+ * punciones y biopsias = 3) ocupa su horario y los siguientes. Solo se puede dar si el siguiente está libre, y ese segundo turno
  * queda bloqueado para cualquier otro turno. La única excepción es el sobreturno, que se atiende
  * por encima de la agenda.
+ * Hay un solo ecógrafo: la regla vale entre TODOS los médicos (no se filtra por médico).
  * La misma regla está en la base de datos (función enforce_double_slot) como última barrera.
  */
 export const SLOT_MIN = 10;
@@ -43,8 +44,6 @@ export function addMinutes(t: string, n: number): string {
   return fromMinutes(toMinutes(t) + n);
 }
 
-const sameDoctor = (a?: string | null, b?: string | null) => !a || !b || a === b;
-
 /**
  * ¿Se puede poner este estudio en este horario?
  * `existing` = los turnos de ese día. `validSlots` (opcional) = horarios reales de la agenda del médico:
@@ -65,7 +64,7 @@ export function checkPlacement(
   if (p.sobreturno) return { ok: true, message: '' };
   const interval = p.interval ?? SLOT_MIN;
   const others = existing.filter(
-    (a) => a.id !== p.id && !isInactiveStatus(a.status) && !a.esSobreturno && sameDoctor(a.doctorId, p.doctorId),
+    (a) => a.id !== p.id && !isInactiveStatus(a.status) && !a.esSobreturno,
   );
   const start = toMinutes(p.time);
 
@@ -76,7 +75,7 @@ export function checkPlacement(
     if (n > 1 && start > os && start < os + n * interval) {
       return {
         ok: false, code: 'inside_other', slot: o.time,
-        message: `Las ${p.time} es el segundo turno de un estudio de 2 turnos que empieza a las ${o.time}. Elegí otro horario o usá Sobreturno.`,
+        message: `Las ${p.time} es parte de un estudio de ${n} turnos que empieza a las ${o.time}. Elegí otro horario o usá Sobreturno.`,
       };
     }
   }
@@ -88,7 +87,7 @@ export function checkPlacement(
     if (p.validSlots && p.validSlots.length > 0 && !p.validSlots.includes(slot)) {
       return {
         ok: false, code: 'no_next_slot', slot,
-        message: `Este estudio ocupa 2 turnos y a las ${slot} no hay horario en la agenda del médico. Elegí un horario anterior.`,
+        message: `Este estudio ocupa ${needed} turnos y a las ${slot} no hay horario en la agenda del médico. Elegí un horario anterior.`,
       };
     }
     const taken = others.find((o) => {
@@ -99,7 +98,7 @@ export function checkPlacement(
     if (taken) {
       return {
         ok: false, code: 'next_taken', slot,
-        message: `Este estudio ocupa 2 turnos y el horario de las ${slot} ya está ocupado. Elegí otro horario.`,
+        message: `Este estudio ocupa ${needed} turnos y el horario de las ${slot} ya está ocupado. Elegí otro horario.`,
       };
     }
   }

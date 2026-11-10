@@ -7,6 +7,8 @@ import { useClinicStore } from '@/store/useClinicStore';
 import { useScheduleStore } from '@/store/useScheduleStore';
 import { checkPlacement, secondSlotsOf, type SlottedAppointment } from '@/lib/agendaRules';
 import { verifyPlacement } from '@/lib/agendaCheck';
+import { firstUncoveredSlot, doctorsAtSlot } from '@/lib/doctorHours';
+import OutOfHoursDialog from '@/components/OutOfHoursDialog';
 import { STUDY_TYPES, DNI_TIPOS, cleanDniInput, composePatientName, calcularEdad, calcularEdadDetallada, getStudyDuration, PHONE_DEFAULT_PREFIX, cleanPhoneInput, hasPhoneNumber, phoneToSave, isInactiveStatus } from '@/types/medical';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +25,7 @@ import { CalendarIcon, Clock, AlertTriangle, Timer, Ban } from 'lucide-react';
 const NewAppointmentPage = () => {
   const navigate = useNavigate();
   const { addPatient, addAppointment, searchPatients, patients, findPatientByDni, getAppointmentsByDate, searchPatientsRemote } = useClinicStore();
-  const { doctors, fetchDoctors, fetchAllSchedules, generateAvailableSlots, schedules, isDateBlocked, fetchBlockedDates, blockedDates } = useScheduleStore();
+  const { doctors, fetchDoctors, fetchAllSchedules, slotsOnDate, worksAt, hoursContext, schedules, exceptions, fetchExceptions, isDateBlocked, fetchBlockedDates, blockedDates } = useScheduleStore();
 
   const [dni, setDni] = useState('');
   const [dniTipo, setDniTipo] = useState('DNI');
@@ -44,6 +46,7 @@ const NewAppointmentPage = () => {
   const [lookingUp, setLookingUp] = useState(false);
   const [showOverride, setShowOverride] = useState(false);
   const [overrideTime, setOverrideTime] = useState('');
+  const [hoursDialog, setHoursDialog] = useState<null | { kind: 'normal' | 'sobreturno'; slot: string }>(null);
 
   const calculatedAge = fechaNacimiento ? calcularEdad(fechaNacimiento) : null;
   const calculatedEdad = fechaNacimiento ? calcularEdadDetallada(fechaNacimiento) : null;
@@ -54,6 +57,7 @@ const NewAppointmentPage = () => {
     fetchDoctors();
     fetchAllSchedules();
     fetchBlockedDates();
+    fetchExceptions();
   }, []);
 
   // Auto-select doctor ONLY if there is exactly one in the system.
@@ -67,8 +71,14 @@ const NewAppointmentPage = () => {
   // Available slots based on doctor schedule
   const availableSlots = useMemo(() => {
     if (!selectedDoctorId) return [];
-    return generateAvailableSlots(selectedDoctorId, dayOfWeek);
-  }, [selectedDoctorId, dayOfWeek, schedules]);
+    return slotsOnDate(selectedDoctorId, dateStr);
+  }, [selectedDoctorId, dateStr, schedules, exceptions, blockedDates]);
+
+  // Médicos que atienden en la fecha elegida (para avisar cuando el elegido no atiende ese día)
+  const doctorsThisDay = useMemo(
+    () => doctors.filter((d) => slotsOnDate(d.userId, dateStr).length > 0),
+    [doctors, dateStr, schedules, exceptions, blockedDates],
+  );
 
   // Occupied slots for the selected date
   const occupiedSlots = useMemo(() => {
@@ -150,26 +160,8 @@ const NewAppointmentPage = () => {
     return blocked;
   }, [occupiedSlots]);
 
-  // Compute the doctor's working time range for the selected day (for sobreturno validation)
-  const doctorDayRange = useMemo(() => {
-    if (!selectedDoctorId) return null;
-    const blocks = schedules.filter(b => b.doctorId === selectedDoctorId && b.dayOfWeek === dayOfWeek && b.active);
-    if (blocks.length === 0) return null;
-    const toMin = (t: string) => {
-      const [h, m] = t.split(':').map(Number);
-      return h * 60 + m;
-    };
-    const start = Math.min(...blocks.map(b => toMin(b.startTime)));
-    const end = Math.max(...blocks.map(b => toMin(b.endTime)));
-    return { start, end };
-  }, [selectedDoctorId, dayOfWeek, schedules]);
-
-  const isOverrideOutOfRange = useMemo(() => {
-    if (!showOverride || !overrideTime || !doctorDayRange) return false;
-    const [h, m] = overrideTime.split(':').map(Number);
-    const mins = h * 60 + m;
-    return mins < doctorDayRange.start || mins >= doctorDayRange.end;
-  }, [showOverride, overrideTime, doctorDayRange]);
+  // Un sobreturno se puede dar a cualquier hora, pero fuera del horario del médico pide confirmación explícita
+  const overrideOutOfHours = showOverride && !!overrideTime && !!selectedDoctorId && !worksAt(selectedDoctorId, dateStr, overrideTime);
 
   const finalTime = showOverride ? overrideTime : time;
 
@@ -183,7 +175,7 @@ const NewAppointmentPage = () => {
     }
   }, [studyTypeStr]);
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (acordadoCon?: string) => {
     const studyType = getStudyTypeString();
     if (!selectedDoctorId) {
       toast.error('Debe seleccionar el médico al que se asigna la cita');
@@ -208,8 +200,13 @@ const NewAppointmentPage = () => {
       return;
     }
 
-    if (showOverride && isOverrideOutOfRange) {
-      toast.error('El sobreturno debe estar dentro del horario del médico');
+    // Horario del médico: un turno normal no se puede fuera de su horario (se avisa y se ofrece otro médico);
+    // un sobreturno se puede, pero con confirmación explícita y dejando con quién se acordó.
+    if (!showOverride) {
+      const bad = firstUncoveredSlot(selectedDoctorId, dateStr, finalTime, slotsNeeded, hoursContext(), baseInterval);
+      if (bad) { setHoursDialog({ kind: 'normal', slot: bad }); return; }
+    } else if (!worksAt(selectedDoctorId, dateStr, finalTime) && !acordadoCon) {
+      setHoursDialog({ kind: 'sobreturno', slot: finalTime });
       return;
     }
 
@@ -258,7 +255,7 @@ const NewAppointmentPage = () => {
         patientId = patient.id;
       }
 
-      await addAppointment({ patientId, studyType, date: dateStr, time: finalTime, doctorId: selectedDoctorId || undefined, esSobreturno: showOverride });
+      await addAppointment({ patientId, studyType, date: dateStr, time: finalTime, doctorId: selectedDoctorId || undefined, esSobreturno: showOverride, sobreturnoAcordadoCon: showOverride && overrideOutOfHours ? acordadoCon : undefined });
       toast.success('Cita creada exitosamente');
       navigate('/');
     } catch (err) {
@@ -447,6 +444,21 @@ const NewAppointmentPage = () => {
               />
             </PopoverContent>
           </Popover>
+          {selectedDoctorId && !isDateBlocked(dateStr) && availableSlots.length === 0 && (
+            <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-800 rounded-lg p-3 space-y-2">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                {selectedDoctor?.fullName} no tiene disponibilidad ese día.
+                {doctorsThisDay.length > 0 ? ' Ese día atiende:' : ' Ese día no atiende ningún médico.'}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {doctorsThisDay.map((d) => (
+                  <Button key={d.userId} size="sm" onClick={() => { setSelectedDoctorId(d.userId); setTime(''); }}>
+                    Darlo con {d.fullName}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
           {isDateBlocked(dateStr) && (
             <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 flex items-center gap-2">
               <Ban className="w-4 h-4 text-destructive flex-shrink-0" />
@@ -504,7 +516,7 @@ const NewAppointmentPage = () => {
           ) : (
             <p className="text-sm text-muted-foreground text-center py-3 bg-muted/30 rounded-lg">
               {selectedDoctorId
-                ? 'No hay bloques horarios configurados para este día.'
+                ? 'No hay horarios de este médico para este día.'
                 : 'Seleccione un médico para ver los horarios disponibles.'}
             </p>
           )}
@@ -523,38 +535,23 @@ const NewAppointmentPage = () => {
           </div>
           {showOverride && (
             <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">
-                Hora manual (sobreturno)
-                {doctorDayRange && (
-                  <span className="ml-1">
-                    — debe estar entre{' '}
-                    <span className="font-mono font-medium">
-                      {String(Math.floor(doctorDayRange.start / 60)).padStart(2, '0')}:
-                      {String(doctorDayRange.start % 60).padStart(2, '0')}
-                    </span>{' '}
-                    y{' '}
-                    <span className="font-mono font-medium">
-                      {String(Math.floor(doctorDayRange.end / 60)).padStart(2, '0')}:
-                      {String(doctorDayRange.end % 60).padStart(2, '0')}
-                    </span>
-                  </span>
-                )}
-              </Label>
+              <Label className="text-xs text-muted-foreground">Hora manual (sobreturno)</Label>
               <Input
                 type="time"
                 value={overrideTime}
                 onChange={(e) => setOverrideTime(e.target.value)}
                 step="600"
-                min={doctorDayRange ? `${String(Math.floor(doctorDayRange.start / 60)).padStart(2, '0')}:${String(doctorDayRange.start % 60).padStart(2, '0')}` : undefined}
-                max={doctorDayRange ? `${String(Math.floor(doctorDayRange.end / 60)).padStart(2, '0')}:${String(doctorDayRange.end % 60).padStart(2, '0')}` : undefined}
-                className={isOverrideOutOfRange ? 'border-destructive' : ''}
               />
-              {isOverrideOutOfRange && (
-                <p className="text-xs text-destructive font-medium">
-                  ⚠ El sobreturno debe estar dentro del horario del médico
+              {overrideOutOfHours && (
+                <p className="text-xs text-amber-600 font-medium">
+                  ⚠ Fuera del horario de {selectedDoctor?.fullName}
+                  {doctorsAtSlot(doctors.map((d) => d.userId), dateStr, overrideTime, hoursContext()).length > 0
+                    ? ` — a esa hora atiende ${doctorsAtSlot(doctors.map((d) => d.userId), dateStr, overrideTime, hoursContext()).map((id) => doctors.find((d) => d.userId === id)?.fullName).join(' o ')}`
+                    : ' — a esa hora no atiende ningún médico'}
+                  . Al crear te voy a pedir confirmación.
                 </p>
               )}
-              {overrideTime && !isOverrideOutOfRange && occupiedSlots.has(overrideTime) && (
+              {overrideTime && occupiedSlots.has(overrideTime) && (
                 <p className="text-xs text-amber-600 font-medium">
                   ⚠ Ya hay una cita en este horario (se agregará igualmente)
                 </p>
@@ -564,14 +561,24 @@ const NewAppointmentPage = () => {
         </div>
 
         <Button
-          onClick={handleSubmit}
+          onClick={() => handleSubmit()}
           className="w-full btn-action-primary"
           size="lg"
-          disabled={submitting || !selectedDoctorId || (showOverride && (isOverrideOutOfRange || !overrideTime))}
+          disabled={submitting || !selectedDoctorId || (showOverride && !overrideTime)}
         >
           {submitting ? 'Creando...' : 'Crear Cita'}
         </Button>
       </div>
+      <OutOfHoursDialog
+        open={!!hoursDialog}
+        kind={hoursDialog?.kind ?? 'normal'}
+        doctorName={selectedDoctor?.fullName ?? 'El médico'}
+        when={`${format(selectedDate, "EEEE d 'de' MMMM", { locale: es })} a las ${hoursDialog?.slot ?? ''}`}
+        available={hoursDialog ? doctorsAtSlot(doctors.map((d) => d.userId), dateStr, hoursDialog.slot, hoursContext()).filter((id) => id !== selectedDoctorId).map((id) => ({ id, name: doctors.find((d) => d.userId === id)?.fullName ?? '' })) : []}
+        onPickDoctor={(id) => { setSelectedDoctorId(id); setHoursDialog(null); toast.info('Cambié el médico. Revisá y tocá Crear Cita.'); }}
+        onConfirmSobreturno={(who) => { setHoursDialog(null); handleSubmit(who); }}
+        onClose={() => setHoursDialog(null)}
+      />
     </AppLayout>
   );
 };

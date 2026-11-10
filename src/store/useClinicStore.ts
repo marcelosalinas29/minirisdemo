@@ -16,18 +16,18 @@ interface ClinicStore {
   fetchPatients: (force?: boolean) => Promise<void>;
   fetchAppointments: (force?: boolean) => Promise<void>;
   addPatient: (patient: Omit<Patient, 'id' | 'age'> & { age?: number }) => Promise<Patient>;
-  addAppointment: (data: { patientId: string; studyType: string; date: string; time: string; observations?: string; doctorId?: string; esSobreturno?: boolean }) => Promise<Appointment>;
+  addAppointment: (data: { patientId: string; studyType: string; date: string; time: string; observations?: string; doctorId?: string; esSobreturno?: boolean; sobreturnoAcordadoCon?: string }) => Promise<Appointment>;
   updateAppointmentStatus: (id: string, status: StudyStatus) => Promise<void>;
   updateAppointmentReport: (id: string, report: string, reportedBy?: string) => Promise<void>;
   updateAppointmentStudyType: (id: string, studyType: string) => Promise<void>;
-  updateAppointmentSchedule: (id: string, changes: { time?: string; studyType?: string; status?: StudyStatus }) => Promise<void>;
+  updateAppointmentSchedule: (id: string, changes: { time?: string; studyType?: string; status?: StudyStatus; doctorId?: string; esSobreturno?: boolean; sobreturnoAcordadoCon?: string | null }) => Promise<void>;
   updateAppointmentTime: (id: string, time: string) => Promise<void>;
   updateAppointmentDate: (id: string, date: string) => Promise<void>;
   updateAppointmentObservations: (id: string, observations: string) => Promise<void>;
   updateAppointmentAsistio: (id: string, asistio: boolean) => Promise<void>;
   setArrivalState: (id: string, state: ArrivalState) => Promise<void>;
   deleteAppointment: (id: string) => Promise<void>;
-  rescheduleAppointment: (id: string, date: string, time: string) => Promise<void>;
+  rescheduleAppointment: (id: string, date: string, time: string, doctorId?: string) => Promise<void>;
   addImagesToAppointment: (id: string, images: string[]) => Promise<void>;
   addStorageImagesToAppointment: (id: string, urls: string[]) => Promise<void>;
   removeImageFromAppointment: (id: string, index: number) => Promise<void>;
@@ -44,7 +44,7 @@ interface ClinicStore {
 }
 
 const APPOINTMENTS_WINDOW_DAYS = 180;
-const APPOINTMENT_LIST_COLUMNS = 'id, patient_id, study_type, status, date, time, observations, reported_by, asistio, arrival_state, created_at, created_by, doctor_id, es_sobreturno, patients(*)';
+const APPOINTMENT_LIST_COLUMNS = 'id, patient_id, study_type, status, date, time, observations, reported_by, asistio, arrival_state, created_at, created_by, doctor_id, es_sobreturno, sobreturno_acordado_con, patients(*)';
 
 function mapPatient(p: any): Patient {
   return {
@@ -79,6 +79,7 @@ function mapAppointment(a: any): Appointment {
     createdAt: a.created_at,
     doctorId: a.doctor_id ?? null,
     esSobreturno: !!a.es_sobreturno,
+    sobreturnoAcordadoCon: a.sobreturno_acordado_con ?? null,
   };
 }
 
@@ -217,6 +218,7 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
         observations: data.observations || '',
         doctor_id: data.doctorId || null,
         es_sobreturno: !!data.esSobreturno,
+        sobreturno_acordado_con: data.sobreturnoAcordadoCon?.trim() || null,
         report: '',
         images: [],
       } as any)
@@ -285,6 +287,9 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
     if (changes.time !== undefined) upd.time = changes.time;
     if (changes.studyType !== undefined) upd.study_type = changes.studyType;
     if (changes.status !== undefined) upd.status = changes.status;
+    if (changes.doctorId !== undefined) upd.doctor_id = changes.doctorId;
+    if (changes.esSobreturno !== undefined) upd.es_sobreturno = changes.esSobreturno;
+    if (changes.sobreturnoAcordadoCon !== undefined) upd.sobreturno_acordado_con = changes.sobreturnoAcordadoCon?.trim() || null;
     if (Object.keys(upd).length === 0) return;
     trackMutation(id);
     const { error } = await supabase.from('appointments').update(upd).eq('id', id);
@@ -295,6 +300,9 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
         ...(changes.time !== undefined ? { time: changes.time } : {}),
         ...(changes.studyType !== undefined ? { studyType: changes.studyType } : {}),
         ...(changes.status !== undefined ? { status: changes.status } : {}),
+        ...(changes.doctorId !== undefined ? { doctorId: changes.doctorId } : {}),
+        ...(changes.esSobreturno !== undefined ? { esSobreturno: changes.esSobreturno } : {}),
+        ...(changes.sobreturnoAcordadoCon !== undefined ? { sobreturnoAcordadoCon: changes.sobreturnoAcordadoCon } : {}),
       } : a)),
     }));
   },
@@ -494,12 +502,14 @@ export const useClinicStore = create<ClinicStore>()((set, get) => ({
     }));
   },
 
-  rescheduleAppointment: async (id, date, time) => {
+  rescheduleAppointment: async (id, date, time, doctorId) => {
     trackMutation(id);
-    const { error } = await supabase.from('appointments').update({ date, time }).eq('id', id);
+    const upd: any = { date, time };
+    if (doctorId) upd.doctor_id = doctorId;
+    const { error } = await supabase.from('appointments').update(upd).eq('id', id);
     if (error) throw error;
     set((s) => ({
-      appointments: s.appointments.map((a) => (a.id === id ? { ...a, date, time } : a)),
+      appointments: s.appointments.map((a) => (a.id === id ? { ...a, date, time, ...(doctorId ? { doctorId } : {}) } : a)),
     }));
   },
 

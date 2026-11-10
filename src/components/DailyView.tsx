@@ -1,11 +1,12 @@
 import React, { useState, useMemo, memo } from 'react';
-import { getDay } from 'date-fns';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Appointment, StudyStatus } from '@/types/medical';
 import { isInactiveStatus } from '@/types/medical';
-import { checkPlacement, type SlottedAppointment } from '@/lib/agendaRules';
+import { checkPlacement, slotsNeeded as slotsNeededFor, type SlottedAppointment } from '@/lib/agendaRules';
+import { firstUncoveredSlot, doctorsAtSlot } from '@/lib/doctorHours';
+import OutOfHoursDialog from '@/components/OutOfHoursDialog';
 import { verifyPlacement } from '@/lib/agendaCheck';
 import { STATUS_LABELS, ARRIVAL_LABELS, resolveArrival, type ArrivalState, formatStudyType, calcularEdad, calcularEdadDetallada, getStudyDuration } from '@/types/medical';
 import { Badge } from '@/components/ui/badge';
@@ -88,7 +89,9 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
   const updateAppointmentSchedule = useClinicStore((s) => s.updateAppointmentSchedule);
   // fetchAppointments removed — realtime sync handles updates automatically
   const getAppointmentsByDate = useClinicStore((s) => s.getAppointmentsByDate);
-  const { generateAvailableSlots, schedules, doctors } = useScheduleStore();
+  const { slotsOnDate, worksAt, hoursContext, schedules, exceptions, blockedDates, doctors } = useScheduleStore();
+  const doctorName = (id?: string | null) => (id ? doctors.find((d) => d.userId === id)?.fullName ?? '' : '');
+  const [hoursDlg, setHoursDlg] = useState<null | { kind: 'normal' | 'sobreturno'; slot: string; apt: Appointment; date: string; who: 'edit' | 'move'; newDoctorId: string }>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<{
     time: string;
@@ -100,7 +103,8 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
     patientPhone: string;
     patientObraSocial: string;
     patientFechaNacimiento: string;
-  }>({ time: '', studyType: '', status: 'pending', observations: '', patientName: '', patientDni: '', patientPhone: '', patientObraSocial: '', patientFechaNacimiento: '' });
+    doctorId: string;
+  }>({ time: '', studyType: '', status: 'pending', observations: '', patientName: '', patientDni: '', patientPhone: '', patientObraSocial: '', patientFechaNacimiento: '', doctorId: '' });
 
   const [historyPatientId, setHistoryPatientId] = useState<string | null>(null);
   const [historyPatientDni, setHistoryPatientDni] = useState('');
@@ -118,16 +122,15 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
   // Available slots for reschedule target date
   const rescheduleAvailableSlots = useMemo(() => {
     if (!rescheduleTarget) return [];
-    const dayOfWeek = getDay(rescheduleDate);
-    // Use the currently filtered doctor; fallback to the only doctor if there is just one
-    const doctorId = selectedDoctorId && selectedDoctorId !== 'all'
-      ? selectedDoctorId
-      : (doctors.length === 1 ? doctors[0].userId : null);
-    let slots: string[] = [];
-    if (doctorId) {
-      slots = generateAvailableSlots(doctorId, dayOfWeek);
+    const rescheduleDateStr0 = format(rescheduleDate, 'yyyy-MM-dd');
+    // Horarios reales del médico del turno ese día (con excepciones y vacaciones); si no atiende, los de todos los médicos
+    const doctorId = rescheduleTarget.doctorId
+      || (selectedDoctorId && selectedDoctorId !== 'all' ? selectedDoctorId : (doctors.length === 1 ? doctors[0].userId : null));
+    let slots: string[] = doctorId ? slotsOnDate(doctorId, rescheduleDateStr0) : [];
+    if (slots.length === 0) {
+      slots = [...new Set(doctors.flatMap((d) => slotsOnDate(d.userId, rescheduleDateStr0)))].sort();
     }
-    if (slots.length === 0 && doctorSlots && doctorSlots.length > 0) {
+    if (slots.length === 0 && doctorSlots && doctorSlots.length > 0 && rescheduleDateStr0 === dateStr) {
       slots = [...doctorSlots];
     }
     if (slots.length === 0) {
@@ -144,7 +147,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
     return slots.filter(s => !occupiedSet.has(s) && checkPlacement(dayList, {
       id: rescheduleTarget.id, time: s, studyType: rescheduleTarget.studyType, doctorId: rescheduleTarget.doctorId, validSlots: slots,
     }).ok);
-  }, [rescheduleTarget, rescheduleDate, doctors, schedules, doctorSlots, selectedDoctorId, getAppointmentsByDate]);
+  }, [rescheduleTarget, rescheduleDate, doctors, schedules, exceptions, blockedDates, doctorSlots, selectedDoctorId, getAppointmentsByDate]);
 
   const dateStr = format(selectedDate, 'yyyy-MM-dd');
 
@@ -210,12 +213,13 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
       patientPhone: apt.patient.phone,
       patientObraSocial: apt.patient.obraSocial || '',
       patientFechaNacimiento: apt.patient.fechaNacimiento || '',
+      doctorId: apt.doctorId || '',
     });
   };
 
   const cancelEdit = () => setEditingId(null);
 
-  const saveEdit = async (apt: Appointment) => {
+  const saveEdit = async (apt: Appointment, acordadoCon?: string) => {
     try {
       const timeChanged = editData.time !== apt.time;
       const studyChanged = editData.studyType !== apt.studyType;
@@ -223,8 +227,20 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
       const reactivated = statusChanged && isInactiveStatus(apt.status) && !isInactiveStatus(editData.status);
       // Regla de 2 turnos: si cambia la hora, el estudio (por ejemplo "ecografía" pasa a "Doppler") o se reactiva un turno cancelado,
       // el resultado final tiene que entrar en la agenda. Se verifica antes de tocar nada.
-      if ((timeChanged || studyChanged || reactivated) && !isInactiveStatus(editData.status) && !apt.esSobreturno) {
-        const fit = await verifyPlacement({ id: apt.id, date: apt.date, time: editData.time, studyType: editData.studyType, doctorId: apt.doctorId });
+      const newDoc = editData.doctorId || apt.doctorId || '';
+      const doctorChanged = !!editData.doctorId && editData.doctorId !== (apt.doctorId || '');
+      // Horario del médico: al mover el turno o cambiarle el médico tiene que atender a esa hora.
+      // No se rebota: se avisa quién está disponible y se ofrece darlo con él (el sobreturno pide confirmación explícita).
+      if ((timeChanged || doctorChanged || reactivated) && !isInactiveStatus(editData.status) && newDoc) {
+        const n = apt.esSobreturno ? 1 : slotsNeededFor(editData.studyType);
+        const bad = firstUncoveredSlot(newDoc, apt.date, editData.time, n, hoursContext());
+        if (bad && !(apt.esSobreturno && acordadoCon)) {
+          setHoursDlg({ kind: apt.esSobreturno ? 'sobreturno' : 'normal', slot: bad, apt, date: apt.date, who: 'edit', newDoctorId: newDoc });
+          return;
+        }
+      }
+      if ((timeChanged || studyChanged || reactivated || doctorChanged) && !isInactiveStatus(editData.status) && !apt.esSobreturno) {
+        const fit = await verifyPlacement({ id: apt.id, date: apt.date, time: editData.time, studyType: editData.studyType, doctorId: newDoc });
         if (!fit.ok) {
           toast.error(fit.message);
           return;
@@ -234,6 +250,8 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
         ...(timeChanged ? { time: editData.time } : {}),
         ...(studyChanged ? { studyType: editData.studyType } : {}),
         ...(statusChanged ? { status: editData.status } : {}),
+        ...(doctorChanged ? { doctorId: editData.doctorId } : {}),
+        ...(acordadoCon ? { sobreturnoAcordadoCon: acordadoCon } : {}),
       });
       if (editData.observations !== (apt.observations || '')) await updateAppointmentObservations(apt.id, editData.observations);
       const patientChanges: any = {};
@@ -266,15 +284,29 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
     if (!rescheduleTarget || !rescheduleTime) return;
     try {
       const newDate = format(rescheduleDate, 'yyyy-MM-dd');
+      // El médico tiene que atender en el nuevo día y horario; si no, se pasa al que atiende a esa hora.
+      const ids = doctors.map((d) => d.userId);
+      const ctx = hoursContext();
+      const needed = rescheduleTarget.esSobreturno ? 1 : slotsNeededFor(rescheduleTarget.studyType);
+      let newDoctorId = rescheduleTarget.doctorId || '';
+      const covered = (id: string) => !!id && firstUncoveredSlot(id, newDate, rescheduleTime, needed, ctx) === null;
+      if (!covered(newDoctorId)) {
+        const alt = doctorsAtSlot(ids, newDate, rescheduleTime, ctx).find((id) => covered(id));
+        if (alt) newDoctorId = alt;
+        else if (!rescheduleTarget.esSobreturno) {
+          toast.error('A ese día y horario no atiende ningún médico. Elegí otro horario.');
+          return;
+        }
+      }
       // Regla de 2 turnos también al pasar el turno a otro día u hora
       if (!rescheduleTarget.esSobreturno) {
-        const fit = await verifyPlacement({ id: rescheduleTarget.id, date: newDate, time: rescheduleTime, studyType: rescheduleTarget.studyType, doctorId: rescheduleTarget.doctorId });
+        const fit = await verifyPlacement({ id: rescheduleTarget.id, date: newDate, time: rescheduleTime, studyType: rescheduleTarget.studyType, doctorId: newDoctorId });
         if (!fit.ok) {
           toast.error(fit.message);
           return;
         }
       }
-      await rescheduleAppointment(rescheduleTarget.id, newDate, rescheduleTime);
+      await rescheduleAppointment(rescheduleTarget.id, newDate, rescheduleTime, newDoctorId && newDoctorId !== rescheduleTarget.doctorId ? newDoctorId : undefined);
       toast.success(`Cita trasladada al ${format(rescheduleDate, "d 'de' MMMM", { locale: es })} a las ${rescheduleTime}`);
       setRescheduleTarget(null);
       setRescheduleTime('');
@@ -370,7 +402,17 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                     <td className="p-1.5 border border-border font-mono text-center text-muted-foreground font-semibold">
                       {slot}
                       {overbook && <span className="ml-1 text-[9px] text-accent-foreground font-bold">ST</span>}
-                      {extra && <span className="ml-1 text-[9px] text-amber-700 font-bold" title="Sobreturno: ya hay otro turno a esta hora">SOB</span>}
+                      {(extra || apt?.esSobreturno) && (
+                        <span
+                          className="ml-1 text-[9px] text-amber-700 font-bold"
+                          title={`Sobreturno${apt?.doctorId ? ' de ' + doctorName(apt.doctorId) : ''}${apt?.sobreturnoAcordadoCon ? ' · acordado con: ' + apt.sobreturnoAcordadoCon : ''}`}
+                        >
+                          SOB{apt?.doctorId && apt.doctorId !== selectedDoctorId ? ` · ${doctorName(apt.doctorId).split(' ').slice(0, 2).join(' ')}` : ''}
+                        </span>
+                      )}
+                      {apt && !apt.esSobreturno && !extra && apt.doctorId && apt.status === 'pending' && !worksAt(apt.doctorId, apt.date, apt.time) && (
+                        <span className="ml-1 text-[9px] text-red-600 font-bold" title={`${doctorName(apt.doctorId)} ya no atiende a esta hora. Hay que mover el turno.`}>⚠ FUERA DE HORARIO</span>
+                      )}
                     </td>
 
                     {isOccupied && apt ? (
@@ -386,7 +428,17 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                         </td>
                         <td className="p-1.5 border border-border">
                           {isEditing ? (
-                            <Input value={editData.studyType} onChange={(e) => setEditData(d => ({ ...d, studyType: e.target.value }))} className="h-7 text-xs" />
+                            <div className="space-y-1">
+                              <Input value={editData.studyType} onChange={(e) => setEditData(d => ({ ...d, studyType: e.target.value }))} className="h-7 text-xs" />
+                              {doctors.length > 1 && (apt.status === 'pending' || isInactiveStatus(apt.status)) && (
+                                <Select value={editData.doctorId} onValueChange={(v) => setEditData(d => ({ ...d, doctorId: v }))}>
+                                  <SelectTrigger className="h-7 text-xs"><SelectValue placeholder="Médico" /></SelectTrigger>
+                                  <SelectContent>
+                                    {doctors.map((d) => <SelectItem key={d.userId} value={d.userId}>{d.fullName}</SelectItem>)}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </div>
                           ) : (
                             <span className="uppercase font-bold">{formatStudyType(apt.studyType)}</span>
                           )}
@@ -621,6 +673,17 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
           onOpenChange={(open) => { if (!open) { setHistoryPatientId(null); setHistoryPatientDni(''); } }}
         />
       )}
+
+      <OutOfHoursDialog
+        open={!!hoursDlg}
+        kind={hoursDlg?.kind ?? 'normal'}
+        doctorName={doctorName(hoursDlg?.newDoctorId) || 'El médico'}
+        when={hoursDlg ? `el ${hoursDlg.date.split('-').reverse().join('/')} a las ${hoursDlg.slot}` : ''}
+        available={hoursDlg ? doctorsAtSlot(doctors.map((d) => d.userId), hoursDlg.date, hoursDlg.slot, hoursContext()).filter((id) => id !== hoursDlg.newDoctorId).map((id) => ({ id, name: doctorName(id) })) : []}
+        onPickDoctor={(id) => { setEditData((d) => ({ ...d, doctorId: id })); setHoursDlg(null); toast.info('Cambié el médico. Revisá y guardá.'); }}
+        onConfirmSobreturno={(who) => { const t = hoursDlg?.apt; setHoursDlg(null); if (t) saveEdit(t, who); }}
+        onClose={() => setHoursDlg(null)}
+      />
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>

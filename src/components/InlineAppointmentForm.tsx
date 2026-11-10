@@ -6,6 +6,10 @@ import { toast } from 'sonner';
 import { Check, X, Search, FileText } from 'lucide-react';
 import StudyTypeSelector from '@/components/StudyTypeSelector';
 import { verifyPlacement } from '@/lib/agendaCheck';
+import { useScheduleStore } from '@/store/useScheduleStore';
+import { doctorsAtSlot, firstUncoveredSlot } from '@/lib/doctorHours';
+import { slotsNeeded } from '@/lib/agendaRules';
+import OutOfHoursDialog from '@/components/OutOfHoursDialog';
 import { calcularEdadDetallada, cleanDniInput, composePatientName, normalizeDni, PHONE_DEFAULT_PREFIX, cleanPhoneInput, phoneToSave } from '@/types/medical';
 
 interface Props {
@@ -31,6 +35,16 @@ const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Prop
   const [patientId, setPatientId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showStudySelector, setShowStudySelector] = useState(false);
+  const [chosenDoctor, setChosenDoctor] = useState('');
+  const [askSobreturno, setAskSobreturno] = useState(false);
+
+  // El médico se asigna solo según quién atiende en ese día y horario (igual que en "Nuevo turno").
+  const sched = useScheduleStore();
+  const doctorIds = sched.doctors.map((d) => d.userId);
+  const atSlot = doctorsAtSlot(doctorIds, date, slot, sched.hoursContext());
+  const doctorName = (id: string) => sched.doctors.find((d) => d.userId === id)?.fullName ?? 'Médico';
+  const nobodyWorks = atSlot.length === 0;
+  const needsPick = nobodyWorks || atSlot.length > 1;
 
   // Completa todos los datos a partir de un paciente ya cargado
   const fillFromPatient = (p: { id: string; name: string; dni?: string; dniMaterno?: boolean; phone?: string; obraSocial?: string; fechaNacimiento?: string }) => {
@@ -75,7 +89,7 @@ const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Prop
     }
   };
 
-  const handleSave = async () => {
+  const handleSave = async (acordadoCon?: string) => {
     if (!cleanDniInput(dni)) {
       toast.error('Ingrese el documento del paciente (en recién nacidos, el de la madre)');
       return;
@@ -106,7 +120,22 @@ const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Prop
     // Regla de 2 turnos: un estudio doble (Doppler, morfológica, TN, scan fetal...) solo entra si el turno siguiente está libre.
     // Se verifica contra la agenda real. Si es un turno repetido que el usuario confirmó, se trata como sobreturno.
     const effectiveStudy = studyType || 'ECOGRAFIA';
-    const fit = await verifyPlacement({ date, time: slot, studyType: effectiveStudy, doctorId, sobreturno: existingSameSlot.length > 0 });
+    let docId: string | undefined;
+    let es = existingSameSlot.length > 0;
+    if (nobodyWorks) {
+      // Nadie atiende a esa hora: solo se puede como sobreturno, eligiendo médico y confirmando explícitamente.
+      if (!chosenDoctor) { toast.error('A esa hora no atiende ningún médico. Para darlo como sobreturno, elegí el médico.'); return; }
+      if (!acordadoCon) { setAskSobreturno(true); return; }
+      docId = chosenDoctor; es = true;
+    } else {
+      docId = atSlot.length === 1 ? atSlot[0] : (chosenDoctor || (doctorId && atSlot.includes(doctorId) ? doctorId : ''));
+      if (!docId) { toast.error('Elegí el médico del turno.'); return; }
+      if (!es) {
+        const bad = firstUncoveredSlot(docId, date, slot, slotsNeeded(effectiveStudy), sched.hoursContext());
+        if (bad) { toast.error(`${doctorName(docId)} no atiende a las ${bad}, que este estudio necesita. Elegí otro horario o usá sobreturno.`); return; }
+      }
+    }
+    const fit = await verifyPlacement({ date, time: slot, studyType: effectiveStudy, doctorId: docId, sobreturno: es });
     if (!fit.ok) {
       toast.error(fit.message);
       return;
@@ -134,8 +163,9 @@ const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Prop
         date,
         time: slot,
         observations: observations.trim() || undefined,
-        doctorId,
-        esSobreturno: existingSameSlot.length > 0,
+        doctorId: docId,
+        esSobreturno: es,
+        sobreturnoAcordadoCon: nobodyWorks ? acordadoCon : undefined,
       });
       toast.success('Turno confirmado');
       onSaved();
@@ -257,7 +287,32 @@ const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Prop
         />
       </td>
       <td className="p-1 border border-border text-center">
-        <span className="text-[10px] text-amber-600 font-semibold">Nuevo</span>
+        <span className="text-[10px] text-amber-600 font-semibold block">{nobodyWorks ? 'Sobreturno' : 'Nuevo'}</span>
+        {needsPick ? (
+          <select
+            value={chosenDoctor}
+            onChange={(e) => setChosenDoctor(e.target.value)}
+            className="mt-0.5 w-full text-[10px] border border-border rounded bg-background"
+            title={nobodyWorks ? 'A esa hora no atiende ningún médico: elegí con quién es el sobreturno' : 'Hay más de un médico en este horario: elegí uno'}
+          >
+            <option value="">{nobodyWorks ? 'Médico…' : 'Elegí médico…'}</option>
+            {(nobodyWorks ? sched.doctors.map((d) => d.userId) : atSlot).map((id) => (
+              <option key={id} value={id}>{doctorName(id)}</option>
+            ))}
+          </select>
+        ) : (
+          <span className="text-[10px] text-muted-foreground block truncate" title={doctorName(atSlot[0])}>{doctorName(atSlot[0])}</span>
+        )}
+        <OutOfHoursDialog
+          open={askSobreturno}
+          kind="sobreturno"
+          doctorName={chosenDoctor ? doctorName(chosenDoctor) : 'El médico'}
+          when={`el ${date.split('-').reverse().join('/')} a las ${slot}`}
+          available={[]}
+          onPickDoctor={() => setAskSobreturno(false)}
+          onConfirmSobreturno={(who) => { setAskSobreturno(false); handleSave(who); }}
+          onClose={() => setAskSobreturno(false)}
+        />
       </td>
       <td className="p-1 border border-border">
         <Input
@@ -270,7 +325,7 @@ const InlineAppointmentForm = ({ slot, date, doctorId, onCancel, onSaved }: Prop
       </td>
       <td className="p-1 border border-border text-center">
         <div className="flex items-center justify-center gap-0.5">
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={handleSave} disabled={saving} title="Confirmar turno">
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => handleSave()} disabled={saving} title="Confirmar turno">
             <Check className="w-3.5 h-3.5 text-green-600" />
           </Button>
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={onCancel} title="Cancelar">

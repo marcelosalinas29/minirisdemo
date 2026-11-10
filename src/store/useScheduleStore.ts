@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
+import { slotsForDate, isWithinHours, type ScheduleException, type HoursContext } from '@/lib/doctorHours';
 
 export interface ScheduleBlock {
   id: string;
@@ -25,6 +26,13 @@ export interface BlockedDate {
 }
 
 interface ScheduleStore {
+  exceptions: ScheduleException[];
+  fetchExceptions: (force?: boolean) => Promise<void>;
+  addException: (e: Omit<ScheduleException, 'id'>) => Promise<void>;
+  removeException: (id: string) => Promise<void>;
+  hoursContext: () => HoursContext;
+  slotsOnDate: (doctorId: string, date: string) => string[];
+  worksAt: (doctorId: string, date: string, time: string) => boolean;
   schedules: ScheduleBlock[];
   doctors: DoctorInfo[];
   blockedDates: BlockedDate[];
@@ -73,7 +81,35 @@ function generateSlotsFromBlock(startTime: string, endTime: string, interval: nu
   return slots;
 }
 
+function mapException(e: any): ScheduleException {
+  return { id: e.id, doctorId: e.doctor_id, kind: e.kind, dateFrom: e.date_from, dateTo: e.date_to, startTime: e.start_time, endTime: e.end_time, reason: e.reason };
+}
+
 export const useScheduleStore = create<ScheduleStore>()((set, get) => ({
+  exceptions: [],
+  fetchExceptions: async () => {
+    const { data } = await supabase.from('doctor_schedule_exceptions' as any).select('*').order('date_from');
+    if (data) set({ exceptions: (data as any[]).map(mapException) });
+  },
+  addException: async (e) => {
+    const { data, error } = await supabase.from('doctor_schedule_exceptions' as any).insert({
+      doctor_id: e.doctorId, kind: e.kind, date_from: e.dateFrom, date_to: e.dateTo,
+      start_time: e.startTime, end_time: e.endTime, reason: e.reason || null,
+    } as any).select().single();
+    if (error) throw error;
+    set(s => ({ exceptions: [...s.exceptions, mapException(data)] }));
+  },
+  removeException: async (id) => {
+    const { error } = await supabase.from('doctor_schedule_exceptions' as any).delete().eq('id', id);
+    if (error) throw error;
+    set(s => ({ exceptions: s.exceptions.filter(x => x.id !== id) }));
+  },
+  hoursContext: () => ({ weekly: get().schedules, exceptions: get().exceptions, blockedDates: get().blockedDates }),
+  slotsOnDate: (doctorId, date) => {
+    const doctor = get().doctors.find(d => d.userId === doctorId);
+    return slotsForDate(doctorId, date, get().hoursContext(), doctor?.slotInterval ?? 10);
+  },
+  worksAt: (doctorId, date, time) => isWithinHours(doctorId, date, time, get().hoursContext()),
   schedules: [],
   doctors: [],
   blockedDates: [],
@@ -85,7 +121,8 @@ export const useScheduleStore = create<ScheduleStore>()((set, get) => ({
       .eq('doctor_id', doctorId)
       .order('day_of_week')
       .order('start_time');
-    if (data) set({ schedules: data.map(mapBlock) });
+    // Se reemplazan solo los bloques de este médico (el resto de la lista no se toca)
+    if (data) set(st => ({ schedules: [...st.schedules.filter(b => b.doctorId !== doctorId), ...data.map(mapBlock)] }));
   },
 
   fetchAllSchedules: async (force = false) => {
