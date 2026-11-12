@@ -15,7 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useClinicStore } from '@/store/useClinicStore';
 import { useScheduleStore } from '@/store/useScheduleStore';
 import { toast } from 'sonner';
-import { Save, Edit2, X, ClipboardList, Trash2, CalendarDays, UserCheck, Lock } from 'lucide-react';
+import { Save, Edit2, X, ClipboardList, Plus, Trash2, CalendarDays, UserCheck, Lock } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import PatientHistoryModal from '@/components/PatientHistoryModal';
 import InlineAppointmentForm from '@/components/InlineAppointmentForm';
@@ -109,6 +110,9 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
   const [historyPatientId, setHistoryPatientId] = useState<string | null>(null);
   const [historyPatientDni, setHistoryPatientDni] = useState('');
   const [historyPatientName, setHistoryPatientName] = useState('');
+  const [historyAdding, setHistoryAdding] = useState(false);
+  const { isViewer, role } = useAuth();
+  const canUpload = !!role && !isViewer;
   const [preAppointmentSlot, setPreAppointmentSlot] = useState<string | null>(null);
 
   // Delete state
@@ -449,10 +453,11 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                           ) : (
                             <span className="flex items-center gap-1">
                               {apt.patient.dni || '-'}
-                              {hasHistory && (
+                              {hasHistory ? (
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
+                                    setHistoryAdding(false);
                                     setHistoryPatientId(apt.patientId);
                                      setHistoryPatientDni(apt.patient.dni || '');
                                     setHistoryPatientName(apt.patient.name);
@@ -462,7 +467,21 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                                 >
                                   <ClipboardList className="w-3.5 h-3.5" />
                                 </button>
-                              )}
+                              ) : canUpload ? (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setHistoryAdding(true);
+                                    setHistoryPatientId(apt.patientId);
+                                     setHistoryPatientDni(apt.patient.dni || '');
+                                    setHistoryPatientName(apt.patient.name);
+                                  }}
+                                  className="text-primary hover:text-primary/80 transition-colors"
+                                  title="Cargar estudio previo"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                </button>
+                              ) : null}
                             </span>
                           )}
                         </td>
@@ -670,7 +689,8 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
           patientDni={historyPatientDni}
           patientName={historyPatientName}
           open={!!historyPatientId}
-          onOpenChange={(open) => { if (!open) { setHistoryPatientId(null); setHistoryPatientDni(''); } }}
+          initiallyAdding={historyAdding}
+          onOpenChange={(open) => { if (!open) { setHistoryPatientId(null); setHistoryPatientDni(''); setHistoryAdding(false); } }}
         />
       )}
 
