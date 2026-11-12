@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, User, ChevronRight, Calendar } from 'lucide-react';
+import { Search, User, ChevronRight, Calendar, Plus } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import AppLayout from '@/components/AppLayout';
@@ -8,9 +8,17 @@ import { useClinicStore } from '@/store/useClinicStore';
 import { STATUS_LABELS, calcularEdadDetallada } from '@/types/medical';
 import { Input } from '@/components/ui/input';
 import PatientHistoryModal from '@/components/PatientHistoryModal';
+import PreviousStudiesSection from '@/components/PreviousStudiesSection';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 const PatientsPage = () => {
   const [query, setQuery] = useState('');
+  const { isViewer, role } = useAuth();
+  const canUpload = !!role && !isViewer;
+  const [uploadPatient, setUploadPatient] = useState<{ id: string; name: string; dni: string } | null>(null);
   const { searchPatients, patients, getPatientAppointments, fetchPatients, fetchAppointments, searchPatientsRemote } = useClinicStore();
   const navigate = useNavigate();
   const [historyPatient, setHistoryPatient] = useState<{ id: string; dni: string; name: string } | null>(null);
@@ -57,8 +65,13 @@ const PatientsPage = () => {
               return (
                 <div key={patient.id} className="bg-card rounded-xl border border-border p-4 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="font-bold text-foreground">{patient.name}</p>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-bold text-foreground break-words">{patient.name}</p>
+                        {canUpload && <Tooltip><TooltipTrigger asChild>
+                          <Button variant="outline" size="icon" className="h-8 w-8 shrink-0" aria-label={`Cargar estudio previo de ${patient.name}`} onClick={() => setUploadPatient({ id: patient.id, name: patient.name, dni: patient.dni })}><Plus className="h-4 w-4" /></Button>
+                        </TooltipTrigger><TooltipContent>Cargar estudio previo</TooltipContent></Tooltip>}
+                      </div>
                       <p className="text-sm font-light text-muted-foreground flex items-center gap-0 flex-wrap">
                         {patient.dni && (
                           <>
@@ -106,6 +119,12 @@ const PatientsPage = () => {
           </div>
         )}
       </div>
+      {canUpload && uploadPatient && <Dialog open onOpenChange={(open) => { if (!open) setUploadPatient(null); }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Agregar estudio previo</DialogTitle><DialogDescription className="break-words">{uploadPatient.name}{uploadPatient.dni ? ` · DNI ${uploadPatient.dni}` : ''}</DialogDescription></DialogHeader>
+          <PreviousStudiesSection key={uploadPatient.id} patientIds={[uploadPatient.id]} primaryPatientId={uploadPatient.id} canEdit={canUpload} initiallyAdding />
+        </DialogContent>
+      </Dialog>}
       {historyPatient && (
         <PatientHistoryModal
           patientId={historyPatient.id}

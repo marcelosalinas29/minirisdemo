@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
     );
   } catch (err) {
     console.error(err);
-    return new Response(JSON.stringify({ ok: false, error: String(err?.message || err) }), {
+    return new Response(JSON.stringify({ ok: false, error: err instanceof Error ? err.message : String(err) }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

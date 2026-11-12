@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { listZipEntries, readZipEntry } from '@/lib/import/zipReader';
+import { savePreviousStudyFile } from '@/lib/previousStudiesStorage';
 import {
   docxToText, parseReportText, parseFileName, looksLikeAppBackup, matchPatients, sha256Hex, type MatchPatient,
 } from '@/lib/import/studyParser';
@@ -122,7 +123,8 @@ const ImportStudiesPage = () => {
             item.status = 'respaldo'; item.include = false; item.note = 'Parece un PDF generado por la app: seguramente ya está cargado';
           }
         } catch (e: any) {
-          item = { ...item, status: 'error', include: false, note: e?.message || 'No se pudo leer' };
+          console.error('Error al leer estudio:', e);
+          item = { ...item, status: 'error', include: false, note: 'No se pudo leer el archivo. Elegí el paciente para cargarlo a mano.' };
         }
         out[i] = item;
         setProgress((p) => ({ ...p, done: p.done + 1 }));
@@ -161,7 +163,7 @@ const ImportStudiesPage = () => {
       toast.success(`${out.length} archivo(s) analizados. Revisá el resumen antes de importar.`);
     } catch (e: any) {
       console.error(e);
-      toast.error(e?.message || 'No se pudo leer la selección');
+      toast.error('No se pudieron leer los archivos, probá de nuevo');
     } finally {
       setBusy('');
       if (fileRef.current) fileRef.current.value = '';
@@ -189,10 +191,10 @@ const ImportStudiesPage = () => {
       try {
         const blob = await it.getBlob();
         const safe = it.fileName.replace(/^.*[\\/]/, '').replace(/[^\w.\-]+/g, '_');
+        if (!it.hash) it.hash = await sha256Hex(blob);
         const path = `${it.patientId || 'pendientes'}/${it.hash.slice(0, 16)}_${safe}`;
-        const { error: upErr } = await supabase.storage.from('estudios_previos').upload(path, blob, { upsert: true });
-        if (upErr) throw upErr;
-        const { error: insErr } = await db.from('estudios_previos').insert({
+        await savePreviousStudyFile(supabase.storage.from('estudios_previos'), path, blob, async () => {
+          const result = await db.from('estudios_previos').insert({
           patient_id: it.patientId || null,
           estado: it.patientId ? 'asignado' : 'pendiente',
           fecha: it.fecha || null,
@@ -205,15 +207,15 @@ const ImportStudiesPage = () => {
           dni_detectado: it.dni || null,
           archivo_hash: it.hash,
           created_by: user?.id,
+          });
+          return result;
         });
-        if (insErr) {
-          if ((insErr as any).code === '23505') { dup++; update(it.key, { status: 'repetido', include: false, note: 'Ya importado' }); return; }
-          throw insErr;
-        }
         ok++; update(it.key, { include: false, status: 'repetido', note: 'Importado ✔' });
       } catch (e: any) {
-        errors.push(`${it.fileName}: ${e?.message || 'error'}`);
-        update(it.key, { status: 'error', note: e?.message || 'Error al importar' });
+        console.error('Error al importar estudio:', e);
+        if (e?.code === '23505') { dup++; update(it.key, { status: 'repetido', include: false, note: 'Ya importado' }); return; }
+        errors.push(it.fileName);
+        update(it.key, { status: 'error', include: false, note: 'No se pudo guardar el archivo, probá de nuevo' });
       } finally {
         setProgress((p) => ({ ...p, done: p.done + 1 }));
       }
@@ -273,11 +275,12 @@ const ImportStudiesPage = () => {
                         <Input type="date" value={it.fecha} onChange={(e) => update(it.key, { fecha: e.target.value })} />
                         <Input value={it.tipo} onChange={(e) => update(it.key, { tipo: e.target.value })} placeholder="Tipo de estudio" />
                       </div>
-                      <select value={it.patientId} onChange={(e) => update(it.key, { patientId: e.target.value, include: true, status: e.target.value ? (it.status === 'pendiente' ? 'revisar' : it.status) : 'pendiente' })}
+                      <select disabled={!!busy || it.status === 'repetido'} value={it.patientId} onChange={(e) => update(it.key, { patientId: e.target.value, include: true, status: e.target.value ? 'listo' : 'pendiente', note: '' })}
                         className="w-full h-9 rounded-md border border-input bg-background px-2 text-sm">
                         <option value="">— Dejar pendiente (sin paciente) —</option>
-                        {it.candidates.map((c) => <option key={c.id} value={c.id}>{c.name}{c.dni ? ` · DNI ${c.dni}` : ''}</option>)}
+                        {Array.from(new Map([...it.candidates, ...matchPool.filter((p) => p.id === it.patientId)].map((p) => [p.id, p])).values()).map((c) => <option key={c.id} value={c.id}>{c.name}{c.dni ? ` · DNI ${c.dni}` : ''}</option>)}
                       </select>
+                      {['revisar', 'pendiente', 'error', 'listo'].includes(it.status) && <ManualPatientPicker disabled={!!busy} onSelect={(patientId) => update(it.key, { patientId, status: 'listo', include: true, note: '' })} />}
                     </div>
                   ))}
                 </div>
@@ -301,11 +304,27 @@ const ImportStudiesPage = () => {
 
 interface Pending { id: string; nombre_detectado: string | null; dni_detectado: string | null; fecha: string | null; tipo: string; archivo_nombre: string; archivo_path: string }
 
+const ManualPatientPicker = ({ onSelect, disabled = false }: { onSelect: (id: string) => void; disabled?: boolean }) => {
+  const [query, setQuery] = useState('');
+  const { searchPatients, searchPatientsRemote, patients } = useClinicStore();
+  useEffect(() => {
+    if (query.trim().length < 2 || disabled) return;
+    const timer = setTimeout(() => { void searchPatientsRemote(query); }, 350);
+    return () => clearTimeout(timer);
+  }, [query, disabled, searchPatientsRemote]);
+  const results = useMemo(() => query.trim().length >= 2 ? searchPatients(query).slice(0, 8) : [], [query, patients, searchPatients]);
+  return <div className="space-y-1">
+    <Input aria-label="Buscar paciente para asignar" placeholder="Buscar paciente por nombre o DNI" value={query} disabled={disabled} onChange={(e) => setQuery(e.target.value)} />
+    {results.map((patient) => <Button key={patient.id} disabled={disabled} variant="outline" className="w-full h-auto justify-start text-left whitespace-normal" onClick={() => { onSelect(patient.id); setQuery(''); }}>{patient.name}{patient.dni ? ` · DNI ${patient.dni}` : ''}</Button>)}
+    {query.trim().length >= 2 && !results.length && <p className="text-xs text-muted-foreground">No se encontraron pacientes.</p>}
+  </div>;
+};
+
 const PendingList = ({ matchPool }: { matchPool: MatchPatient[] }) => {
   const [rows, setRows] = useState<Pending[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterText, setFilterText] = useState('');
-  const [onlyWithMatch, setOnlyWithMatch] = useState(true);
+  const [onlyWithMatch, setOnlyWithMatch] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -324,7 +343,7 @@ const PendingList = ({ matchPool }: { matchPool: MatchPatient[] }) => {
 
   const assign = async (id: string, patientId: string) => {
     const { error } = await db.from('estudios_previos').update({ patient_id: patientId, estado: 'asignado' }).eq('id', id);
-    if (error) { toast.error(`No se pudo asignar: ${error.message}`); return; }
+    if (error) { console.error('Error al asignar estudio:', error); toast.error('No se pudo asignar el estudio, probá de nuevo'); return; }
     toast.success('Asignado al paciente');
     setRows((prev) => prev.filter((x) => x.id !== id));
   };
@@ -356,6 +375,7 @@ const PendingList = ({ matchPool }: { matchPool: MatchPatient[] }) => {
                   <Button size="sm" variant="outline" onClick={() => assign(r.id, c.id)}>Sí, asignar</Button>
                 </div>
               ))}
+              <ManualPatientPicker onSelect={(patientId) => { void assign(r.id, patientId); }} />
             </div>
           ))}
           {shown.length === 0 && <p className="text-sm text-muted-foreground">Nada para mostrar con ese filtro.</p>}
