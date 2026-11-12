@@ -39,4 +39,23 @@ describe('carga manual de estudios previos', () => {
     expect(mocks.upload).not.toHaveBeenCalled();
     expect(mocks.insert).not.toHaveBeenCalled();
   });
+  it('avisa a la agenda después de guardar el primer estudio', async () => {
+    const onChanged = vi.fn();
+    render(<PreviousStudiesSection patientIds={['elegido']} primaryPatientId="elegido" canEdit initiallyAdding onChanged={onChanged} />);
+    fireEvent.change(screen.getByLabelText('Archivos del estudio'), { target: { files: [new File(['pdf'], 'estudio.pdf')] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(onChanged).toHaveBeenCalledTimes(1));
+    expect(mocks.insert).toHaveBeenCalledWith(expect.objectContaining({ patient_id: 'elegido' }));
+  });
+  it('no avisa a la agenda cuando no se pudo guardar ningún estudio', async () => {
+    mocks.upload.mockResolvedValue({ error: { message: 'falló' } });
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const onChanged = vi.fn();
+    render(<PreviousStudiesSection patientIds={['elegido']} primaryPatientId="elegido" canEdit initiallyAdding onChanged={onChanged} />);
+    fireEvent.change(screen.getByLabelText('Archivos del estudio'), { target: { files: [new File(['pdf'], 'estudio.pdf')] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    await waitFor(() => expect(log).toHaveBeenCalled());
+    expect(onChanged).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
 });

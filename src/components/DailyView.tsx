@@ -73,10 +73,11 @@ interface DailyViewProps {
   selectedDate: Date;
   doctorSlots?: string[] | null;
   patientsWithHistory?: Set<string>;
+  onPreviousStudiesChanged?: () => void;
   selectedDoctorId?: string;
 }
 
-const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistory, selectedDoctorId }: DailyViewProps) => {
+const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistory, selectedDoctorId, onPreviousStudiesChanged }: DailyViewProps) => {
   const navigate = useNavigate();
   const updateAppointmentTime = useClinicStore((s) => s.updateAppointmentTime);
   const updateAppointmentStudyType = useClinicStore((s) => s.updateAppointmentStudyType);
@@ -690,6 +691,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
           patientName={historyPatientName}
           open={!!historyPatientId}
           initiallyAdding={historyAdding}
+          onChanged={onPreviousStudiesChanged}
           onOpenChange={(open) => { if (!open) { setHistoryPatientId(null); setHistoryPatientDni(''); setHistoryAdding(false); } }}
         />
       )}

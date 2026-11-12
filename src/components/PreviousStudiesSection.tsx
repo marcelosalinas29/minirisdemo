@@ -27,10 +27,10 @@ interface PreviousStudy {
 
 const MAX_MB = 25;
 
-interface Props { patientIds: string[]; primaryPatientId: string; canEdit: boolean; initiallyAdding?: boolean }
+interface Props { patientIds: string[]; primaryPatientId: string; canEdit: boolean; initiallyAdding?: boolean; onChanged?: () => void }
 
 /** Estudios previos del paciente (Word, PDF, fotos de papel): se guardan tal cual y se abren desde acá. */
-const PreviousStudiesSection = ({ patientIds, primaryPatientId, canEdit, initiallyAdding = false }: Props) => {
+const PreviousStudiesSection = ({ patientIds, primaryPatientId, canEdit, initiallyAdding = false, onChanged }: Props) => {
   const { user, isDoctor, isAdmin } = useAuth();
   const canManage = isDoctor || isAdmin; // eliminar / reasignar
   const { searchPatients, searchPatientsRemote } = useClinicStore();
@@ -83,7 +83,7 @@ const PreviousStudiesSection = ({ patientIds, primaryPatientId, canEdit, initial
       }
       setFiles(failed);
       if (fileRef.current) fileRef.current.value = '';
-      if (saved) toast.success(`${saved} estudio(s) previo(s) agregado(s)`);
+      if (saved) { toast.success(`${saved} estudio(s) previo(s) agregado(s)`); onChanged?.(); }
       if (failed.length) toast.error('No se pudo guardar el archivo, probá de nuevo');
       else { setAdding(false); setFecha(''); setTipo('Estudio previo'); setNotas(''); setOrigen('propio'); }
       await load();
@@ -102,6 +102,7 @@ const PreviousStudiesSection = ({ patientIds, primaryPatientId, canEdit, initial
     if (!confirm(`¿Eliminar "${it.archivo_nombre}"? Se borra el archivo y no se puede recuperar.`)) return;
     const { data, error } = await db.from('estudios_previos').delete().eq('id', it.id).select('id');
     if (error || !data || data.length === 0) { toast.error('No se pudo eliminar (sin permiso o ya no existe).'); return; }
+    onChanged?.();
     const { error: rmErr } = await supabase.storage.from('estudios_previos').remove([it.archivo_path]);
     if (rmErr) console.warn('No se pudo borrar el archivo del almacenamiento:', rmErr.message);
     toast.success('Estudio previo eliminado');
@@ -112,6 +113,7 @@ const PreviousStudiesSection = ({ patientIds, primaryPatientId, canEdit, initial
     if (newPatientId === it.patient_id) { setReassigning(null); return; }
     const { data, error } = await db.from('estudios_previos').update({ patient_id: newPatientId, estado: 'asignado' }).eq('id', it.id).select('id');
     if (error || !data || data.length === 0) { toast.error('No se pudo reasignar.'); return; }
+    onChanged?.();
     toast.success('Estudio reasignado al otro paciente');
     setReassigning(null); setReassignQuery('');
     await load();
