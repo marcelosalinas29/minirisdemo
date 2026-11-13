@@ -13,7 +13,7 @@ const NexoMark = ({ className, variant = 'silver', fullLogo = false }: NexoMarkP
     src={fullLogo ? darkLogo.url : variant === 'silver' ? darkSymbol.url : lightSymbol.url}
     alt={fullLogo ? 'Nexo Imagen — Consulta integral en diagnóstico por imágenes' : ''}
     aria-hidden={fullLogo ? undefined : true}
-    className={`object-contain ${className || ''}`}
+    className={`object-contain ${fullLogo ? '' : 'nexo-mark-small rounded-2xl overflow-hidden'} ${className || ''}`}
     decoding="async"
     draggable={false}
   />

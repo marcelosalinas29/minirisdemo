@@ -58,8 +58,12 @@
     --brand-electric: 221 100% 62%;
     --gradient-brand: linear-gradient(135deg, hsl(var(--brand-night)), hsl(var(--brand-surface)));
     --shadow-brand-mark: 0 0 20px hsl(var(--brand-electric) / .16);
+    --nexo-edge: 217 70% 20% / .12;
+    --shadow-nexo-small: inset 0 1px 0 hsl(0 0% 100% / .65), 0 6px 16px -6px hsl(217 70% 20% / .35), 0 2px 4px hsl(217 70% 20% / .15);
   }
   .dark {
+    --nexo-edge: 222 100% 74% / .18;
+    --shadow-nexo-small: inset 0 1px 0 hsl(222 100% 74% / .12), 0 4px 12px -6px hsl(226 65% 7% / .3), 0 1px 3px hsl(226 65% 7% / .2);
     --background: 226 65% 7%;
     --foreground: 222 77% 95%;
     --card: 225 63% 12%;
@@ -223,6 +227,7 @@
 .login-brand-subtitle { color: hsl(var(--brand-silver)); }
 .login-brand-tagline { color: hsl(var(--brand-silver) / .75); }
 .login-brand-mark { filter: drop-shadow(var(--shadow-brand-mark)); animation: nexo-enter 600ms ease-out both; }
+.nexo-mark-small { border-radius: 22%; border: 1px solid hsl(var(--nexo-edge)); box-shadow: var(--shadow-nexo-small); }
 @keyframes nexo-enter { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }
 .sidebar-link { color: hsl(var(--sidebar-foreground) / .76); transition: background-color 150ms, color 150ms; }
 .sidebar-link:hover { color: hsl(var(--sidebar-foreground)); background: hsl(var(--sidebar-primary) / .12); }

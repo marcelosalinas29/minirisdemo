@@ -84,7 +84,7 @@ const LoginPage = () => {
     <div className="login-screen min-h-screen bg-background lg:grid lg:grid-cols-[55%_45%]">
       <section className="login-brand relative flex flex-col items-center justify-center overflow-hidden px-6 py-7 lg:sticky lg:top-0 lg:h-screen lg:px-10 lg:py-12" aria-label="DMR by Nexo Imagen">
         <div className="relative flex items-center gap-5 lg:flex-col lg:gap-6">
-          <NexoMark variant="silver" fullLogo className="login-brand-mark h-32 w-32 shrink-0 rounded-lg lg:h-[352px] lg:w-[352px]" />
+          <NexoMark variant="silver" fullLogo className="login-brand-mark h-32 w-32 shrink-0 rounded-3xl lg:h-[352px] lg:w-[352px]" />
           <div className="text-left lg:text-center">
             <h1 className="login-brand-title text-3xl font-bold lg:text-6xl">DMR</h1>
             <p className="login-brand-subtitle mt-2 text-sm lg:text-xl">by Nexo Imagen</p>
