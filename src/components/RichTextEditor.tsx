@@ -307,18 +307,18 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
   if (!editor) return null;
 
   return (
-    <div className="border border-border rounded-2xl overflow-hidden bg-card text-card-foreground">
+    <div className="report-editor-surface bg-card text-card-foreground min-w-0">
       {!disabled && (
-        <div className="flex flex-wrap items-center gap-0.5 p-1.5 border-b border-border bg-secondary/60">
+        <div className="flex flex-wrap items-center gap-1 p-2 rounded-xl border border-border border-border bg-secondary/60">
           {/* Undo / Redo */}
-          <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
+          <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0"
             onClick={() => editor.chain().focus().undo().run()}
             disabled={!editor.can().undo()}
             title="Deshacer"
           >
             <Undo2 className="w-3.5 h-3.5" />
           </Button>
-          <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
+          <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0"
             onClick={() => editor.chain().focus().redo().run()}
             disabled={!editor.can().redo()}
             title="Rehacer"
@@ -333,7 +333,7 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
             value={editor.getAttributes('textStyle').fontFamily || 'Calibri, sans-serif'}
             onValueChange={(v) => editor.chain().focus().setFontFamily(v).run()}
           >
-            <SelectTrigger className="w-[110px] h-7 text-xs">
+            <SelectTrigger className="w-[110px] h-8 text-xs">
               <Type className="w-3 h-3 mr-1" />
               <SelectValue />
             </SelectTrigger>
@@ -351,7 +351,7 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
             value={editor.getAttributes('textStyle').fontSize || '14px'}
             onValueChange={setFontSize}
           >
-            <SelectTrigger className="w-[60px] h-7 text-xs">
+            <SelectTrigger className="w-[60px] h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -366,7 +366,7 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
             value={editor.getAttributes('paragraph').lineHeight || '1.5'}
             onValueChange={(v) => editor.chain().focus().updateAttributes('paragraph', { lineHeight: v }).run()}
           >
-            <SelectTrigger className="w-[60px] h-7 text-xs" title="Interlineado">
+            <SelectTrigger className="w-[60px] h-8 text-xs" title="Interlineado">
               <ChevronsUpDown className="w-3 h-3 mr-0.5" />
               <SelectValue />
             </SelectTrigger>
@@ -381,35 +381,35 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
 
           {/* Bold/Italic/Underline/Strikethrough */}
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive('bold') ? 'bg-accent text-accent-foreground' : ''}`}
+            className={`h-8 w-8 p-0 ${editor.isActive('bold') ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().toggleBold().run()}
             title="Negrita"
           >
             <Bold className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive('italic') ? 'bg-accent text-accent-foreground' : ''}`}
+            className={`h-8 w-8 p-0 ${editor.isActive('italic') ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().toggleItalic().run()}
             title="Cursiva"
           >
             <Italic className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive('underline') ? 'bg-accent text-accent-foreground' : ''}`}
+            className={`h-8 w-8 p-0 ${editor.isActive('underline') ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().toggleUnderline().run()}
             title="Subrayado"
           >
             <UnderlineIcon className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive('strike') ? 'bg-accent text-accent-foreground' : ''}`}
+            className={`h-8 w-8 p-0 ${editor.isActive('strike') ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().toggleStrike().run()}
             title="Tachado"
           >
             <Strikethrough className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive('highlight') ? 'bg-accent text-accent-foreground' : ''}`}
+            className={`h-8 w-8 p-0 ${editor.isActive('highlight') ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().toggleHighlight({ color: '#fef08a' }).run()}
             title="Resaltar"
           >
@@ -420,28 +420,28 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
 
           {/* Alignment */}
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'left' }) ? 'bg-accent text-accent-foreground' : ''}`}
+            className={`h-8 w-8 p-0 ${editor.isActive({ textAlign: 'left' }) ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().setTextAlign('left').run()}
             title="Alinear izquierda"
           >
             <AlignLeft className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'center' }) ? 'bg-accent text-accent-foreground' : ''}`}
+            className={`h-8 w-8 p-0 ${editor.isActive({ textAlign: 'center' }) ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().setTextAlign('center').run()}
             title="Centrar"
           >
             <AlignCenter className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'right' }) ? 'bg-accent text-accent-foreground' : ''}`}
+            className={`h-8 w-8 p-0 ${editor.isActive({ textAlign: 'right' }) ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().setTextAlign('right').run()}
             title="Alinear derecha"
           >
             <AlignRight className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'justify' }) ? 'bg-accent text-accent-foreground' : ''}`}
+            className={`h-8 w-8 p-0 ${editor.isActive({ textAlign: 'justify' }) ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().setTextAlign('justify').run()}
             title="Justificar"
           >
@@ -452,14 +452,14 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
 
           {/* Lists */}
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive('bulletList') ? 'bg-accent text-accent-foreground' : ''}`}
+            className={`h-8 w-8 p-0 ${editor.isActive('bulletList') ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             title="Lista con viñetas"
           >
             <List className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive('orderedList') ? 'bg-accent text-accent-foreground' : ''}`}
+            className={`h-8 w-8 p-0 ${editor.isActive('orderedList') ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
             title="Lista numerada"
           >
@@ -469,7 +469,7 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
           <div className="w-px h-5 bg-border mx-0.5" />
 
           {/* Horizontal Rule */}
-          <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
+          <Button type="button" variant="ghost" size="sm" className="h-8 w-8 p-0"
             onClick={() => editor.chain().focus().setHorizontalRule().run()}
             title="Línea horizontal"
           >
@@ -479,7 +479,7 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
           {/* Text color */}
           <input
             type="color"
-            className="w-7 h-7 rounded cursor-pointer border border-border"
+            className="w-8 h-8 rounded cursor-pointer border border-border"
             value={editor.getAttributes('textStyle').color || '#000000'}
             onChange={(e) => editor.chain().focus().setColor(e.target.value).run()}
             title="Color de texto"
@@ -488,7 +488,7 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
           <div className="w-px h-5 bg-border mx-0.5" />
 
           {/* Custom Dictionary */}
-          <Button type="button" variant="ghost" size="sm" className="h-7 px-1.5 text-xs gap-1"
+          <Button type="button" variant="ghost" size="sm" className="h-8 px-2 text-xs gap-1"
             onClick={() => { setCustomWords(getCustomDictionary()); setShowDictionary(true); }}
             title="Diccionario personalizado"
           >
@@ -501,7 +501,7 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
       {/* Editor area with Spanish spellcheck */}
       <EditorContent
         editor={editor}
-        className="prose prose-sm dark:prose-invert max-w-none p-4 min-h-[200px] focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[200px]"
+        className="report-reading-area prose prose-sm dark:prose-invert max-w-[72ch] mx-auto py-6 px-2 sm:px-4 min-h-[380px] focus:outline-none [&_.ProseMirror]:outline-none [&_.ProseMirror]:min-h-[340px]"
         spellCheck
         lang="es"
       />

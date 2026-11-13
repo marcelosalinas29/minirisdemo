@@ -2,9 +2,12 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, User, Phone, Calendar, FileText, ImagePlus, Send, Download, Trash2, ChevronDown, Edit2, Save, Pencil, Mic, Sparkles } from 'lucide-react';
+import { ArrowLeft, History, PanelRightClose, PanelRightOpen, Phone, Calendar, FileText, ImagePlus, Send, Download, Trash2, ChevronDown, Edit2, Save, Pencil, Mic, Sparkles } from 'lucide-react';
+import PreviousStudiesSection from '@/components/PreviousStudiesSection';
+import { useScheduleStore } from '@/store/useScheduleStore';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
-import { calcularEdad, calcularEdadDetallada, formatEdad, cleanDniInput } from '@/types/medical';
+import { calcularEdad, calcularEdadDetallada, formatEdad, cleanDniInput, normalizeDni } from '@/types/medical';
 import AppLayout from '@/components/AppLayout';
 import { useClinicStore } from '@/store/useClinicStore';
 import { useAuth } from '@/contexts/AuthContext';
@@ -84,6 +87,9 @@ const AppointmentPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Un informe ya realizado solo lo edita el médico que lo hizo (los informes viejos sin médico registrado quedan editables)
   const isOtherDoctorsReport = !!appointment?.reportedBy && !!user && appointment.reportedBy !== user.id;
+  const [previousPanelOpen, setPreviousPanelOpen] = useState<boolean | null>(null);
+  const doctors = useScheduleStore((s) => s.doctors);
+  const patients = useClinicStore((s) => s.patients);
   const [showTemplates, setShowTemplates] = useState(false);
   const [showStudySelector, setShowStudySelector] = useState(false);
   const isReportEmpty = (r: string) => !r || r === '<p></p>' || r.replace(/<[^>]*>/g, '').trim() === '';
@@ -1084,7 +1090,7 @@ const AppointmentPage = () => {
 
   return (
     <AppLayout title={appointment.patient.name}>
-      <div className="p-4 space-y-4 max-w-2xl mx-auto">
+      <div className="appointment-workspace p-4 lg:p-6 max-w-[1600px] mx-auto space-y-4">
         {/* Volver a donde estabas (el mismo día de la agenda, la búsqueda o el historial) */}
         <Button
           variant="ghost" size="sm" className="-mb-2 -ml-2 text-muted-foreground"
@@ -1092,20 +1098,33 @@ const AppointmentPage = () => {
         >
           <ArrowLeft className="w-4 h-4 mr-1" /> Volver
         </Button>
+        {/* Action Buttons */}
+        <div className="sticky top-14 lg:top-3 z-20 bg-card/95 backdrop-blur-sm rounded-2xl border border-border p-3 flex flex-wrap gap-2">
+          <Button onClick={generatePDF} className="flex-1 min-w-0 text-xs sm:text-sm btn-action-primary" size="lg">
+            <Download className="w-4 h-4 mr-2" />
+            Informe PDF
+          </Button>
+          <Button onClick={sendWhatsApp} className="flex-1 min-w-0 text-xs sm:text-sm btn-whatsapp" size="lg">
+            <Send className="w-4 h-4 mr-2" />
+            Enviar WhatsApp
+          </Button>
+        </div>
+        <div className="report-workspace-grid" data-panel-open={previousPanelOpen === null ? 'auto' : String(previousPanelOpen)}>
+        <div className="min-w-0 space-y-5">
         {/* Patient Info Card */}
-        <div className="bg-card rounded-xl border border-border p-4 shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <User className="w-5 h-5 text-primary" />
+        <div className="bg-card text-card-foreground rounded-2xl border border-border p-4 sm:p-5 shadow-card space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex basis-full sm:basis-auto sm:flex-1 min-w-0 items-center gap-3">
+              <Avatar className="h-12 w-12 shrink-0"><AvatarFallback className="bg-action-primary/10 text-action-primary font-semibold">{appointment.patient.name.split(' ').filter(Boolean).map(word => word[0]).slice(0, 2).join('')}</AvatarFallback></Avatar>
               {editingPatient ? (
                 <Input
                   value={patientForm.name}
                   onChange={(e) => setPatientForm(f => ({ ...f, name: e.target.value.toUpperCase() }))}
-                  className="uppercase font-semibold text-lg h-8"
+                  className="uppercase font-semibold text-lg h-10 min-w-0"
                   placeholder="NOMBRE Y APELLIDO"
                 />
               ) : (
-                <span className="font-semibold text-lg">{appointment.patient.name}</span>
+                <h1 className="font-semibold text-2xl break-words min-w-0">{appointment.patient.name}</h1>
               )}
             </div>
             <div className="flex items-center gap-2">
@@ -1113,11 +1132,11 @@ const AppointmentPage = () => {
                 {STATUS_LABELS[currentAppointment.status]}
               </Badge>
               {editingPatient ? (
-                <Button variant="ghost" size="sm" onClick={handleSavePatient}>
+                <Button variant="ghost" size="icon" className="h-9 w-9" title="Guardar datos del paciente" aria-label="Guardar datos del paciente" onClick={handleSavePatient}>
                   <Save className="w-4 h-4 text-primary" />
                 </Button>
               ) : !isReadOnly ? (
-                <Button variant="ghost" size="sm" onClick={() => setEditingPatient(true)}>
+                <Button variant="ghost" size="icon" className="h-9 w-9" title="Editar datos del paciente" aria-label="Editar datos del paciente" onClick={() => setEditingPatient(true)}>
                   <Pencil className="w-4 h-4 text-muted-foreground" />
                 </Button>
               ) : null}
@@ -1125,7 +1144,7 @@ const AppointmentPage = () => {
           </div>
 
           {editingPatient ? (
-            <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="patient-fields grid grid-cols-2 gap-4 text-sm">
               <div>
                 <label className="text-xs text-muted-foreground">DNI</label>
                 <Input value={patientForm.dni} onChange={(e) => setPatientForm(f => ({ ...f, dni: cleanDniInput(e.target.value) }))} className="h-8" placeholder="DNI" />
@@ -1152,36 +1171,28 @@ const AppointmentPage = () => {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+            <div className="patient-fields grid grid-cols-2 gap-4 text-sm">
               {!appointment.patient.fechaNacimiento && (
-                <span className="col-span-2 text-xs font-semibold text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-500/15 border border-amber-200 rounded px-2 py-1 flex items-center justify-between gap-2">
+                <div className="col-span-2 text-xs text-status-late bg-status-late/10 border border-status-late/25 rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2">
                   ⚠ Falta la fecha de nacimiento (obligatoria para enviar el informe)
-                  {!isReadOnly && <button className="underline" onClick={() => setEditingPatient(true)}>Completar</button>}
-                </span>
+                  {!isReadOnly && <Button variant="ghost" size="sm" className="h-8 text-status-late" onClick={() => setEditingPatient(true)}>Completar</Button>}
+                </div>
               )}
-              {appointment.patient.dni && <span>DNI: {appointment.patient.dni}</span>}
-              {(() => {
-                const e = appointment.patient.fechaNacimiento
-                  ? calcularEdadDetallada(appointment.patient.fechaNacimiento)
-                  : { value: appointment.patient.age, unit: 'años' as const };
-                return <span>Edad: <span className="font-bold text-foreground">{e.value}</span> {e.unit}</span>;
-              })()}
-              <span className="flex items-center gap-1"><Phone className="w-3 h-3" />{appointment.patient.phone}</span>
-              <span className="flex items-center gap-1">
-                <FileText className="w-3 h-3" />
-                <span className="uppercase font-bold text-xs">{formatStudyType(currentAppointment.studyType)}</span>
-                {!isReadOnly && (
-                  <button onClick={() => setShowStudySelector(true)} className="ml-1 text-primary hover:text-primary/80">
-                    <Edit2 className="w-3 h-3" />
-                  </button>
-                )}
-              </span>
-              <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{(() => { const [y, m, d] = appointment.date.split('-').map(Number); return format(new Date(y, m - 1, d), "d/MM/yyyy"); })()}</span>
-              {appointment.patient.obraSocial && (
-                <span>Obra Social: {appointment.patient.obraSocial}</span>
-              )}
+              <div><p className="patient-field-label">{appointment.patient.dniTipo || 'DNI'}{appointment.patient.dniMaterno ? ' materno' : ''}</p><p className="tabular-nums">{appointment.patient.dni || '—'}</p></div>
+              <div><p className="patient-field-label">Nacimiento / edad</p><p className="tabular-nums">{appointment.patient.fechaNacimiento ? appointment.patient.fechaNacimiento.split('-').reverse().join('/') : '—'}</p>{(() => { const e = appointment.patient.fechaNacimiento ? calcularEdadDetallada(appointment.patient.fechaNacimiento) : { value: appointment.patient.age, unit: 'años' as const }; return <p className="text-muted-foreground"><span className="font-semibold text-foreground">{e.value}</span> {e.unit}</p>; })()}</div>
+              <div><p className="patient-field-label">Teléfono</p><p className="flex items-start gap-1.5 tabular-nums"><Phone className="w-3.5 h-3.5 shrink-0 mt-0.5" />{appointment.patient.phone || '—'}</p></div>
+              <div><p className="patient-field-label">Obra social</p><p>{appointment.patient.obraSocial || '—'}</p></div>
             </div>
           )}
+
+          <div className="patient-fields grid grid-cols-2 gap-4 border-t border-border pt-4 text-sm">
+            <div className="col-span-2"><p className="patient-field-label">Estudio</p><div className="flex items-start gap-2"><p className="uppercase font-medium flex-1">{formatStudyType(currentAppointment.studyType)}</p>{!isReadOnly && <Button variant="ghost" size="icon" title="Editar estudio" aria-label="Editar estudio" className="h-8 w-8 shrink-0 text-primary" onClick={() => setShowStudySelector(true)}><Edit2 className="w-3.5 h-3.5" /></Button>}</div></div>
+            <div><p className="patient-field-label">Fecha del turno</p><p className="tabular-nums">{(() => { const [y, m, d] = appointment.date.split('-').map(Number); return format(new Date(y, m - 1, d), 'd/MM/yyyy'); })()}</p></div>
+            <div><p className="patient-field-label">Hora</p><p className="tabular-nums">{appointment.time}</p></div>
+            <div className="col-span-2"><p className="patient-field-label">Médico</p><p>{doctors.find(doctor => doctor.userId === currentAppointment.doctorId)?.fullName || 'Sin médico asignado'}</p></div>
+            <div className="col-span-2"><p className="patient-field-label">Observaciones</p><p>{currentAppointment.observations || '—'}</p></div>
+            {currentAppointment.esSobreturno && <div className="col-span-2"><p className="patient-field-label">Sobreturno</p><p>{currentAppointment.sobreturnoAcordadoCon || 'Sí'}</p></div>}
+          </div>
 
           <StudyTypeSelector
             open={showStudySelector}
@@ -1190,6 +1201,7 @@ const AppointmentPage = () => {
             currentValue={currentAppointment.studyType}
           />
 
+          <p className="patient-field-label">Estado del turno</p>
           <Select value={currentAppointment.status} onValueChange={(v) => handleStatusChange(v as StudyStatus)} disabled={isReadOnly}>
             <SelectTrigger className="w-full">
               <SelectValue placeholder="Cambiar estado" />
@@ -1207,18 +1219,23 @@ const AppointmentPage = () => {
               )}
             </SelectContent>
           </Select>
+
+          <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+            <Button variant="outline" size="sm" className="gap-2" onClick={sendWhatsApp}><Send className="h-4 w-4" />WhatsApp</Button>
+            <Button variant="outline" size="sm" className="gap-2" aria-controls="previous-studies-panel" onClick={() => setPreviousPanelOpen(previousPanelOpen === null ? !window.matchMedia('(min-width: 1280px)').matches : !previousPanelOpen)}><History className="h-4 w-4" />Estudios previos</Button>
+          </div>
         </div>
 
         {/* Report Section - Rich Text Editor */}
-        <div className="bg-card rounded-xl border border-border p-4 shadow-sm space-y-3">
-          <div className="flex items-center justify-between">
+        <div className="bg-card text-card-foreground rounded-2xl border border-border p-4 sm:p-5 shadow-card space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
             <h2 className="font-semibold flex items-center gap-2">
               <FileText className="w-4 h-4 text-primary" />
               Informe {isReadOnly && <span className="text-xs text-muted-foreground">(solo lectura)</span>}
             </h2>
-            <div className="flex flex-wrap gap-2">
+            <div className="report-command-bar flex flex-wrap items-center gap-2">
               {!isViewer && (
-                <Button variant="outline" size="sm" onClick={() => setShowVersions(true)}>Versiones</Button>
+                <Button variant="outline" size="sm" onClick={() => setShowVersions(true)}><History className="w-3.5 h-3.5 mr-1.5" />Versiones</Button>
               )}
               {!isReadOnly && (
                 <>
@@ -1233,7 +1250,7 @@ const AppointmentPage = () => {
                   </Button>
                   {report && !isEditing && !isOtherDoctorsReport && (
                     <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                      Editar
+                      <Pencil className="w-3.5 h-3.5 mr-1.5" />Editar
                     </Button>
                   )}
                   {report && isOtherDoctorsReport && (
@@ -1302,21 +1319,21 @@ const AppointmentPage = () => {
                 </p>
               )}
               {!isReadOnly && (
-                <Button onClick={async () => { await handleSaveReport(); setIsEditing(false); }} className="w-full btn-action-primary">
-                  Guardar Informe
-                </Button>
+                <div className="sticky bottom-20 lg:bottom-3 z-20 bg-card/95 backdrop-blur-sm border border-border rounded-xl p-2">
+                  <Button onClick={async () => { await handleSaveReport(); setIsEditing(false); }} className="w-full btn-action-primary"><Save className="w-4 h-4 mr-2" />Guardar Informe</Button>
+                </div>
               )}
             </>
           ) : (
             <div
-              className="bg-muted/50 rounded-lg p-4 prose prose-sm dark:prose-invert max-w-none text-foreground"
+              className="report-reading-area prose prose-sm dark:prose-invert text-foreground min-h-[320px] py-6 px-2 sm:px-4 max-w-[72ch] mx-auto"
               dangerouslySetInnerHTML={{ __html: report }}
             />
           )}
         </div>
 
         {/* Images Section */}
-        <div className="bg-card rounded-xl border border-border p-4 shadow-sm space-y-3">
+        <div className="bg-card text-card-foreground rounded-2xl border border-border p-4 sm:p-5 shadow-card space-y-4">
           <h2 className="font-semibold flex items-center gap-2">
             <ImagePlus className="w-4 h-4 text-primary" />
             Imágenes {isReadOnly && <span className="text-xs text-muted-foreground">(solo lectura)</span>}
@@ -1378,16 +1395,14 @@ const AppointmentPage = () => {
           )}
         </div>
 
-        {/* Action Buttons */}
-        <div className="space-y-3 pb-4">
-          <Button onClick={generatePDF} className="w-full btn-action-primary" size="lg">
-            <Download className="w-4 h-4 mr-2" />
-            Generar Informe PDF
-          </Button>
-          <Button onClick={sendWhatsApp} className="w-full btn-whatsapp" size="lg">
-            <Send className="w-4 h-4 mr-2" />
-            Enviar por WhatsApp
-          </Button>
+
+        </div>
+        <aside id="previous-studies-panel" className="previous-studies-panel min-w-0 self-start bg-card text-card-foreground border border-border rounded-2xl shadow-card p-4">
+          <div className="flex items-center justify-between gap-2"><h2 className="text-sm font-semibold">Estudios previos</h2><Button variant="ghost" size="icon" className="h-8 w-8" title="Mostrar u ocultar estudios previos" aria-label="Mostrar u ocultar estudios previos" onClick={() => setPreviousPanelOpen(previousPanelOpen === null ? !window.matchMedia('(min-width: 1280px)').matches : !previousPanelOpen)}><PanelRightClose className="panel-hide-icon h-4 w-4" /><PanelRightOpen className="panel-show-icon h-4 w-4" /></Button></div>
+          <div className="previous-studies-content">
+            <PreviousStudiesSection patientIds={Array.from(new Set([appointment.patientId, ...patients.filter(patient => !appointment.patient.dniMaterno && !patient.dniMaterno && normalizeDni(appointment.patient.dni) && normalizeDni(patient.dni) === normalizeDni(appointment.patient.dni)).map(patient => patient.id)]))} primaryPatientId={appointment.patientId} canEdit={!isViewer} />
+          </div>
+        </aside>
         </div>
       </div>
     </AppLayout>

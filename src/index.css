@@ -257,3 +257,30 @@
   .agenda-row[data-occupied="false"]:has(input) { grid-template-columns: 1fr; opacity: 1; }
   .agenda-row input, .agenda-row [role="combobox"] { max-width: 100%; }
 }
+
+/* Step 3: screen-only patient sheet and report workspace. */
+@media screen {
+  .report-workspace-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .patient-fields > div { min-width: 0; overflow-wrap: anywhere; }
+  .patient-fields input { min-width: 0; max-width: 100%; }
+  .patient-field-label { margin-bottom: 5px; font-size: 11px; font-weight: 500; color: hsl(var(--muted-foreground)); }
+  .report-reading-area { overflow-wrap: anywhere; }
+  .report-command-bar > button { height: 34px; font-size: 12px; }
+  .previous-studies-panel .previous-studies-content > div { margin-top: 12px; }
+  .previous-studies-panel .previous-studies-content > div > div:first-child > p { display: none; }
+  .previous-studies-panel :is(p, button, span) { overflow-wrap: anywhere; }
+  .previous-studies-panel button { white-space: normal; }
+  .previous-studies-panel .previous-studies-content > div > div:first-child > button { width: 100%; }
+  .report-workspace-grid[data-panel-open="false"] .previous-studies-content,
+  .report-workspace-grid[data-panel-open="auto"] .previous-studies-content,
+  .report-workspace-grid[data-panel-open="false"] .panel-hide-icon,
+  .report-workspace-grid[data-panel-open="auto"] .panel-hide-icon { display: none; }
+  .report-workspace-grid[data-panel-open="true"] .panel-show-icon { display: none; }
+  @media (min-width: 1280px) {
+    .report-workspace-grid[data-panel-open="true"], .report-workspace-grid[data-panel-open="auto"] { grid-template-columns: minmax(0, 1fr) 340px; }
+    .report-workspace-grid[data-panel-open="auto"] .previous-studies-content { display: block; }
+    .report-workspace-grid[data-panel-open="auto"] .panel-hide-icon { display: block; }
+    .report-workspace-grid[data-panel-open="auto"] .panel-show-icon { display: none; }
+    .previous-studies-panel { position: sticky; top: 20px; }
+  }
+}
