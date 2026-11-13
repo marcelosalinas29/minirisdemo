@@ -73,7 +73,7 @@
     --agenda-next-foreground: 0 0% 100%;
     --agenda-next-secondary: 214 30% 82%;
     --shadow-agenda-next: 0 8px 24px -12px hsl(217 70% 20% / .5);
-    --gradient-agenda-day: linear-gradient(135deg, #0b1d3f 0%, #2a4a8a 35%, #8fa3c7 48%, #dfe7f5 50%, #8fa3c7 52%, #1c3366 100%);
+    --gradient-agenda-day: linear-gradient(135deg, #07142e 0%, #1b3a78 32%, #4a68a8 47%, #b8c6e0 50%, #4a68a8 53%, #14285a 100%);
     --shadow-agenda-day: 0 2px 3px hsl(219 70% 15% / .18);
     --gradient-agenda-divider: linear-gradient(90deg, hsl(217 70% 20%), transparent);
     --nexo-edge: 217 70% 20% / .12;
