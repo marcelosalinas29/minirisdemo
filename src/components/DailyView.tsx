@@ -402,21 +402,21 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                   )}
                   <tr
                     key={`row-${slot}-${apt?.id ?? 'libre'}`}
-                    className={`transition-colors ${apt && isInactiveStatus(apt.status) ? 'bg-muted/40 opacity-60' : arrivalOf(apt) === 'arrived' ? 'bg-green-100 dark:bg-green-900/30' : arrivalOf(apt) === 'late' ? 'bg-yellow-100 dark:bg-yellow-900/30' : arrivalOf(apt) === 'missed' ? 'bg-red-100 dark:bg-red-900/30' : extra ? 'bg-amber-50 dark:bg-amber-900/20 border-l-2 border-l-amber-500' : overbook ? 'bg-accent/30 border-l-2 border-l-accent' : isOccupied ? 'bg-card hover:bg-muted/30' : 'opacity-50 hover:opacity-80 hover:bg-muted/20'}`}
+                    className={`transition-colors ${apt && isInactiveStatus(apt.status) ? 'bg-muted/40 opacity-60' : arrivalOf(apt) === 'arrived' ? 'agenda-arrived' : arrivalOf(apt) === 'late' ? 'agenda-late' : arrivalOf(apt) === 'missed' ? 'agenda-missed' : extra ? 'bg-status-late/5 border-l-[3px] border-l-status-late' : overbook ? 'bg-accent/5 border-l-[3px] border-l-accent' : isOccupied ? 'bg-card hover:bg-muted/30' : 'opacity-50 hover:opacity-80 hover:bg-muted/20'}`}
                   >
-                    <td className="p-1.5 border border-border font-mono text-center text-muted-foreground font-semibold">
+                    <td className="p-1.5 border border-border tabular-nums text-center text-muted-foreground font-semibold">
                       {slot}
-                      {overbook && <span className="ml-1 text-[9px] text-accent-foreground font-bold">ST</span>}
+                      {overbook && <span className="ml-1 text-[9px] text-accent font-bold">ST</span>}
                       {(extra || apt?.esSobreturno) && (
                         <span
-                          className="ml-1 text-[9px] text-amber-700 font-bold"
+                          className="ml-1 text-[9px] text-status-late font-bold"
                           title={`Sobreturno${apt?.doctorId ? ' de ' + doctorName(apt.doctorId) : ''}${apt?.sobreturnoAcordadoCon ? ' · acordado con: ' + apt.sobreturnoAcordadoCon : ''}`}
                         >
                           SOB{apt?.doctorId && apt.doctorId !== selectedDoctorId ? ` · ${doctorName(apt.doctorId).split(' ').slice(0, 2).join(' ')}` : ''}
                         </span>
                       )}
                       {apt && !apt.esSobreturno && !extra && apt.doctorId && apt.status === 'pending' && !worksAt(apt.doctorId, apt.date, apt.time) && (
-                        <span className="ml-1 text-[9px] text-red-600 font-bold" title={`${doctorName(apt.doctorId)} ya no atiende a esta hora. Hay que mover el turno.`}>⚠ FUERA DE HORARIO</span>
+                        <span className="ml-1 text-[9px] text-status-missed font-bold" title={`${doctorName(apt.doctorId)} ya no atiende a esta hora. Hay que mover el turno.`}>⚠ FUERA DE HORARIO</span>
                       )}
                     </td>
 
@@ -579,14 +579,14 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                                     onClick={(e) => e.stopPropagation()}
                                     title={arrivalOf(apt) ? ARRIVAL_LABELS[arrivalOf(apt) as 'arrived' | 'late' | 'missed'] : 'Marcar llegada'}
                                   >
-                                    <UserCheck className={`w-3 h-3 ${arrivalOf(apt) === 'arrived' ? 'text-green-600' : arrivalOf(apt) === 'late' ? 'text-yellow-500' : arrivalOf(apt) === 'missed' ? 'text-red-600' : 'text-muted-foreground'}`} />
+                                    <UserCheck className={`w-3 h-3 ${arrivalOf(apt) === 'arrived' ? 'text-status-arrived' : arrivalOf(apt) === 'late' ? 'text-status-late' : arrivalOf(apt) === 'missed' ? 'text-status-missed' : 'text-muted-foreground'}`} />
                                   </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-48 p-1" align="end" onClick={(e) => e.stopPropagation()}>
                                   {([
-                                    ['arrived', 'bg-green-500'],
-                                    ['late', 'bg-yellow-400'],
-                                    ['missed', 'bg-red-500'],
+                                    ['arrived', 'bg-status-arrived'],
+                                    ['late', 'bg-status-late'],
+                                    ['missed', 'bg-status-missed'],
                                   ] as const).map(([st, dot]) => (
                                     <button
                                       key={st}

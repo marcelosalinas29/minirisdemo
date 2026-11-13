@@ -1,142 +1,171 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
-    --foreground: 215 30% 12%;
-
-    --action-primary: 224 76% 53%;
-
+    --background: 216 42% 95%;
+    --foreground: 218 62% 12%;
     --card: 0 0% 100%;
-    --card-foreground: 215 30% 12%;
-
+    --card-foreground: 218 62% 12%;
     --popover: 0 0% 100%;
-    --popover-foreground: 215 30% 12%;
-
-    --primary: 215 55% 28%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 210 20% 93%;
-    --secondary-foreground: 215 30% 12%;
-
-    --muted: 210 12% 94%;
-    --muted-foreground: 215 10% 46%;
-
-    --accent: 195 60% 38%;
+    --popover-foreground: 218 62% 12%;
+    --primary: 217 70% 20%;
+    --primary-foreground: 220 77% 97%;
+    --secondary: 216 28% 91%;
+    --secondary-foreground: 218 62% 12%;
+    --muted: 216 32% 93%;
+    --muted-foreground: 216 23% 40%;
+    --accent: 227 100% 59%;
     --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 72% 51%;
+    --destructive: 5 75% 45%;
     --destructive-foreground: 0 0% 100%;
-
-    --border: 214 18% 86%;
-    --input: 214 18% 86%;
-    --ring: 215 55% 28%;
-
+    --border: 215 25% 84%;
+    --input: 215 25% 78%;
+    --ring: 227 100% 59%;
+    --action-primary: 227 100% 59%;
+    --input-surface: 216 40% 97%;
+    --silver: 214 20% 72%;
+    --header: 217 70% 20%;
+    --primary-end: 223 72% 38%;
+    --status-pending: 227 85% 46%;
+    --status-in-study: 217 70% 32%;
+    --status-reported: 194 85% 31%;
+    --status-sent: 158 78% 29%;
+    --status-arrived: 158 78% 29%;
+    --status-late: 35 96% 32%;
+    --status-missed: 5 75% 45%;
+    --whatsapp: 158 78% 29%;
+    --whatsapp-foreground: 0 0% 100%;
+    --overlay: 224 65% 7%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 218 62% 12%;
+    --sidebar-primary: 217 70% 20%;
+    --sidebar-primary-foreground: 220 77% 97%;
+    --sidebar-accent: 216 28% 91%;
+    --sidebar-accent-foreground: 218 62% 12%;
+    --sidebar-border: 215 25% 84%;
+    --sidebar-ring: 227 100% 59%;
     --radius: 0.75rem;
-
-    --status-pending: 40 90% 50%;
-    --status-in-study: 215 55% 28%;
-    --status-reported: 195 60% 38%;
-    --status-sent: 152 60% 40%;
-
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --gradient-primary: linear-gradient(115deg, hsl(var(--primary)), hsl(var(--primary-end)));
+    --shadow-card: 0 3px 16px -8px hsl(var(--foreground) / 0.12);
+    --shadow-button: 0 2px 5px -2px hsl(var(--primary) / 0.25);
+    --shadow-dialog: 0 20px 60px -16px hsl(var(--overlay) / 0.4);
   }
-
   .dark {
-    --background: 225 45% 6%;
-    --foreground: 210 30% 94%;
-
-    --action-primary: 217 100% 62%;
-
-    --card: 225 38% 10%;
-    --card-foreground: 210 30% 94%;
-
-    --popover: 225 38% 11%;
-    --popover-foreground: 210 30% 94%;
-
-    --primary: 221 78% 30%;
+    --background: 226 65% 7%;
+    --foreground: 222 77% 95%;
+    --card: 225 63% 12%;
+    --card-foreground: 222 77% 95%;
+    --popover: 225 63% 15%;
+    --popover-foreground: 222 77% 95%;
+    --primary: 221 100% 62%;
     --primary-foreground: 0 0% 100%;
-
-    --secondary: 225 30% 16%;
-    --secondary-foreground: 210 30% 94%;
-
-    --muted: 225 28% 14%;
-    --muted-foreground: 215 20% 70%;
-
-    --accent: 190 95% 45%;
-    --accent-foreground: 225 45% 6%;
-
-    --destructive: 0 75% 56%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 217 70% 32%;
-    --input: 217 60% 30%;
-    --ring: 190 100% 55%;
-
-    --status-pending: 40 95% 58%;
-    --status-in-study: 217 100% 68%;
-    --status-reported: 190 95% 55%;
-    --status-sent: 152 70% 50%;
-
-    --sidebar-background: 225 40% 8%;
-    --sidebar-foreground: 210 30% 90%;
-    --sidebar-primary: 210 30% 94%;
-    --sidebar-primary-foreground: 225 45% 6%;
-    --sidebar-accent: 225 28% 14%;
-    --sidebar-accent-foreground: 210 30% 94%;
-    --sidebar-border: 217 70% 32%;
-    --sidebar-ring: 190 100% 55%;
+    --secondary: 225 63% 15%;
+    --secondary-foreground: 222 77% 95%;
+    --muted: 225 52% 17%;
+    --muted-foreground: 216 30% 74%;
+    --accent: 199 100% 57%;
+    --accent-foreground: 226 65% 7%;
+    --destructive: 5 90% 70%;
+    --destructive-foreground: 226 65% 7%;
+    --border: 224 40% 24%;
+    --input: 224 40% 30%;
+    --ring: 221 100% 62%;
+    --action-primary: 221 100% 62%;
+    --input-surface: 225 63% 15%;
+    --silver: 214 23% 67%;
+    --header: 225 63% 12%;
+    --primary-end: 225 78% 47%;
+    --status-pending: 221 100% 75%;
+    --status-in-study: 214 100% 77%;
+    --status-reported: 199 100% 70%;
+    --status-sent: 158 70% 65%;
+    --status-arrived: 158 70% 65%;
+    --status-late: 39 100% 70%;
+    --status-missed: 5 90% 74%;
+    --whatsapp: 158 78% 29%;
+    --whatsapp-foreground: 0 0% 100%;
+    --overlay: 224 65% 7%;
+    --sidebar-background: 225 63% 12%;
+    --sidebar-foreground: 222 77% 95%;
+    --sidebar-primary: 221 100% 62%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 225 63% 15%;
+    --sidebar-accent-foreground: 222 77% 95%;
+    --sidebar-border: 224 40% 24%;
+    --sidebar-ring: 221 100% 62%;
+    --radius: 0.75rem;
+    --gradient-primary: linear-gradient(115deg, hsl(var(--primary)), hsl(var(--primary-end)));
+    --shadow-card: 0 3px 16px -8px hsl(var(--foreground) / 0.12);
+    --shadow-button: 0 2px 5px -2px hsl(var(--primary) / 0.25);
+    --shadow-dialog: 0 20px 60px -16px hsl(var(--overlay) / 0.4);
   }
-}
-
-@layer base {
-  * {
-    @apply border-border;
-  }
-
+  :root { color-scheme: light; }
+  .dark { color-scheme: dark; }
+  * { @apply border-border; }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
   }
+  h1, h2, h3, h4 { font-weight: 600; letter-spacing: 0; }
 }
 
 @layer utilities {
-  .status-badge-pending {
-    @apply bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30;
-  }
-  .status-badge-in-study {
-    @apply bg-blue-50 text-blue-800 border-blue-200 dark:bg-blue-500/15 dark:text-blue-300 dark:border-blue-500/30;
-  }
-  .status-badge-reported {
-    @apply bg-cyan-50 text-cyan-800 border-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-300 dark:border-cyan-500/30;
-  }
-  .status-badge-sent {
-    @apply bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30;
-  }
-  .btn-whatsapp {
-    @apply bg-emerald-600 hover:bg-emerald-700 text-white;
+  .card-elevated {
+    @apply bg-card text-card-foreground rounded-2xl border border-border transition-shadow duration-150;
+    box-shadow: var(--shadow-card);
   }
   .btn-action-primary {
-    background-color: hsl(var(--action-primary));
-    color: white;
+    background: var(--gradient-primary);
+    color: hsl(var(--primary-foreground));
+    box-shadow: var(--shadow-button);
   }
-  .btn-action-primary:hover {
-    background-color: hsl(var(--action-primary) / 0.9);
+  .btn-action-primary:hover { filter: brightness(1.08); }
+  .btn-whatsapp {
+    @apply bg-whatsapp text-whatsapp-foreground transition-colors duration-150;
+    background-image: none;
+    box-shadow: var(--shadow-button);
   }
-  .card-elevated {
-    @apply bg-card rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow;
+  .btn-whatsapp:hover { background: hsl(var(--whatsapp) / 0.9); }
+  .status-badge-pending { --badge-status: var(--status-pending); }
+  .status-badge-in-study { --badge-status: var(--status-in-study); }
+  .status-badge-reported { --badge-status: var(--status-reported); }
+  .status-badge-sent { --badge-status: var(--status-sent); }
+  .status-badge-arrived { --badge-status: var(--status-arrived); }
+  .status-badge-late { --badge-status: var(--status-late); }
+  .status-badge-missed { --badge-status: var(--status-missed); }
+  [class*="status-badge-"] {
+    color: hsl(var(--badge-status));
+    background: hsl(var(--badge-status) / 0.08);
+    border-color: hsl(var(--badge-status) / 0.25);
+    gap: 0.375rem;
+    font-weight: 500;
   }
+  [class*="status-badge-"]::before {
+    content: "";
+    width: 0.375rem;
+    height: 0.375rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: hsl(var(--badge-status));
+  }
+  .dark [class*="status-badge-"] {
+    background: hsl(var(--badge-status) / 0.12);
+    border-color: hsl(var(--badge-status) / 0.35);
+  }
+  .agenda-arrived { --arrival-color: var(--status-arrived); }
+  .agenda-late { --arrival-color: var(--status-late); }
+  .agenda-missed { --arrival-color: var(--status-missed); }
+  tr[class*="agenda-"] { background: hsl(var(--arrival-color) / 0.06); }
+  .dark tr[class*="agenda-"] { background: hsl(var(--arrival-color) / 0.09); }
+  tr[class*="agenda-"] > td:first-child { box-shadow: inset 3px 0 hsl(var(--arrival-color)); }
+  .header-institutional {
+    background: hsl(var(--header));
+    border-bottom: 1px solid hsl(var(--silver) / 0.2);
+    box-shadow: var(--shadow-card);
+  }
+  .shadow-institutional { box-shadow: var(--shadow-card); }
 }
 
 /* Report editor — scoped styles to match PDF output (line-height 1.6, paragraph spacing) */
@@ -156,56 +185,26 @@
   margin-bottom: 0;
 }
 
-/* Modo oscuro: detalle "neón" suave (borde azul brillante y leve resplandor) */
-.dark .card-elevated,
-.dark [role="dialog"],
-.dark [data-radix-popper-content-wrapper] > * {
-  box-shadow: 0 0 0 1px hsl(217 90% 55% / 0.35), 0 0 14px hsl(210 100% 55% / 0.14);
+/* Screen-only report contrast: never changes stored HTML or PDF generation. */
+@media screen {
+  .dark :is(.prose, .ProseMirror) {
+    color: hsl(var(--foreground));
+    --tw-prose-body: hsl(var(--foreground));
+    --tw-prose-headings: hsl(var(--foreground));
+    --tw-prose-bold: hsl(var(--foreground));
+    --tw-prose-links: hsl(var(--accent));
+    --tw-prose-bullets: hsl(var(--muted-foreground));
+    --tw-prose-counters: hsl(var(--muted-foreground));
+    --tw-prose-hr: hsl(var(--border));
+  }
+  .dark :is(.prose, .ProseMirror) :is(p, li, strong, b) { color: inherit; }
+  .dark :is(.prose, .ProseMirror) [style*="color"] { color: hsl(var(--foreground)) !important; }
+  .dark :is(.prose, .ProseMirror) [style*="background-color"],
+  .dark :is(.prose, .ProseMirror) mark {
+    background-color: hsl(var(--status-late) / 0.22) !important;
+    color: hsl(var(--foreground)) !important;
+  }
 }
-.dark input:focus-visible,
-.dark textarea:focus-visible,
-.dark select:focus-visible,
-.dark button:focus-visible {
-  box-shadow: 0 0 0 2px hsl(190 100% 55% / 0.6), 0 0 10px hsl(190 100% 55% / 0.35);
-}
-.dark header.bg-primary {
-  border-bottom: 1px solid hsl(217 90% 55% / 0.55);
-  box-shadow: 0 2px 14px hsl(210 100% 55% / 0.25);
-}
-
-/* Informe mostrado (solo lectura, versiones, editor) en modo oscuro: negritas y texto en blanco */
-.dark .prose,
-.dark .prose :where(p, li, span) {
-  color: hsl(210 30% 94%);
-}
-.dark .prose :where(strong, b),
-.dark .prose :where(strong, b) * {
-  color: #ffffff;
-  font-weight: 700;
-}
-.dark .prose [style*="color: rgb(0, 0, 0)"],
-.dark .prose [style*="color:#000"],
-.dark .prose [style*="color: #000"],
-.dark .prose [style*="color: black"],
-.dark .prose [style*="color:black"] {
-  color: inherit !important;
-}
-
-/* Editor de informes en modo oscuro: negritas y texto en blanco (un texto pegado con color negro explícito también) */
-.dark .ProseMirror,
-.dark .ProseMirror p,
-.dark .ProseMirror li {
-  color: hsl(210 30% 94%);
-}
-.dark .ProseMirror strong,
-.dark .ProseMirror b {
-  color: #ffffff;
-  font-weight: 700;
-}
-.dark .ProseMirror [style*="color: rgb(0, 0, 0)"],
-.dark .ProseMirror [style*="color:#000"],
-.dark .ProseMirror [style*="color: #000"],
-.dark .ProseMirror [style*="color: black"],
-.dark .ProseMirror [style*="color:black"] {
-  color: inherit !important;
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

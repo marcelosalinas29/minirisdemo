@@ -52,12 +52,12 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-primary px-4 py-3 shadow-lg">
+      <header className="sticky top-0 z-50 header-institutional px-4 py-3">
         <div className="flex items-center gap-3 max-w-2xl mx-auto">
-          <img src={clinicLogo} alt="DMR" className="w-9 h-9 rounded-lg object-cover bg-white/10 p-0.5" />
+          <img src={clinicLogo} alt="DMR" className="w-9 h-9 rounded-lg object-cover bg-primary-foreground/10 p-0.5" />
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-bold text-primary-foreground/90 tracking-wide uppercase flex items-center gap-1.5">
-              Ecografía y Doppler
+              DMR by Nexo Imagen
               <span className="text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded">DEMO</span>
             </h1>
             <p className="text-xs text-primary-foreground/60 truncate">{title}</p>
@@ -188,7 +188,7 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border shadow-[0_-2px_10px_rgba(0,0,0,0.06)]">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border shadow-institutional">
         <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
           {navItems.map(({ path, icon: Icon, label }) => {
             const isActive = location.pathname === path;
@@ -198,7 +198,7 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
                 to={path}
                 className={`flex flex-col items-center gap-1 px-5 py-2 rounded-xl transition-all ${
                   isActive
-                    ? 'text-primary bg-primary/8'
+                    ? 'text-primary bg-primary/10'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >

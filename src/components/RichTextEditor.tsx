@@ -307,9 +307,9 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
   if (!editor) return null;
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden bg-background">
+    <div className="border border-border rounded-2xl overflow-hidden bg-card text-card-foreground">
       {!disabled && (
-        <div className="flex flex-wrap items-center gap-0.5 p-1.5 border-b border-border bg-muted/30">
+        <div className="flex flex-wrap items-center gap-0.5 p-1.5 border-b border-border bg-secondary/60">
           {/* Undo / Redo */}
           <Button type="button" variant="ghost" size="sm" className="h-7 w-7 p-0"
             onClick={() => editor.chain().focus().undo().run()}
@@ -381,35 +381,35 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
 
           {/* Bold/Italic/Underline/Strikethrough */}
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive('bold') ? 'bg-accent' : ''}`}
+            className={`h-7 w-7 p-0 ${editor.isActive('bold') ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().toggleBold().run()}
             title="Negrita"
           >
             <Bold className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive('italic') ? 'bg-accent' : ''}`}
+            className={`h-7 w-7 p-0 ${editor.isActive('italic') ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().toggleItalic().run()}
             title="Cursiva"
           >
             <Italic className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive('underline') ? 'bg-accent' : ''}`}
+            className={`h-7 w-7 p-0 ${editor.isActive('underline') ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().toggleUnderline().run()}
             title="Subrayado"
           >
             <UnderlineIcon className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive('strike') ? 'bg-accent' : ''}`}
+            className={`h-7 w-7 p-0 ${editor.isActive('strike') ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().toggleStrike().run()}
             title="Tachado"
           >
             <Strikethrough className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive('highlight') ? 'bg-accent' : ''}`}
+            className={`h-7 w-7 p-0 ${editor.isActive('highlight') ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().toggleHighlight({ color: '#fef08a' }).run()}
             title="Resaltar"
           >
@@ -420,28 +420,28 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
 
           {/* Alignment */}
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'left' }) ? 'bg-accent' : ''}`}
+            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'left' }) ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().setTextAlign('left').run()}
             title="Alinear izquierda"
           >
             <AlignLeft className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'center' }) ? 'bg-accent' : ''}`}
+            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'center' }) ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().setTextAlign('center').run()}
             title="Centrar"
           >
             <AlignCenter className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'right' }) ? 'bg-accent' : ''}`}
+            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'right' }) ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().setTextAlign('right').run()}
             title="Alinear derecha"
           >
             <AlignRight className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'justify' }) ? 'bg-accent' : ''}`}
+            className={`h-7 w-7 p-0 ${editor.isActive({ textAlign: 'justify' }) ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().setTextAlign('justify').run()}
             title="Justificar"
           >
@@ -452,14 +452,14 @@ const RichTextEditor = ({ content, onChange, disabled = false, placeholder }: Ri
 
           {/* Lists */}
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive('bulletList') ? 'bg-accent' : ''}`}
+            className={`h-7 w-7 p-0 ${editor.isActive('bulletList') ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().toggleBulletList().run()}
             title="Lista con viñetas"
           >
             <List className="w-3.5 h-3.5" />
           </Button>
           <Button type="button" variant="ghost" size="sm"
-            className={`h-7 w-7 p-0 ${editor.isActive('orderedList') ? 'bg-accent' : ''}`}
+            className={`h-7 w-7 p-0 ${editor.isActive('orderedList') ? 'bg-accent text-accent-foreground' : ''}`}
             onClick={() => editor.chain().focus().toggleOrderedList().run()}
             title="Lista numerada"
           >

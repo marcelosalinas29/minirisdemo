@@ -48,6 +48,14 @@ export default {
           foreground: "hsl(var(--card-foreground))",
         },
         "action-primary": "hsl(var(--action-primary))",
+        "input-surface": "hsl(var(--input-surface))",
+        silver: "hsl(var(--silver))",
+        overlay: "hsl(var(--overlay))",
+        whatsapp: { DEFAULT: "hsl(var(--whatsapp))", foreground: "hsl(var(--whatsapp-foreground))" },
+        status: {
+          arrived: "hsl(var(--status-arrived))", late: "hsl(var(--status-late))", missed: "hsl(var(--status-missed))",
+          pending: "hsl(var(--status-pending))", reported: "hsl(var(--status-reported))", sent: "hsl(var(--status-sent))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -58,6 +66,9 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+      },
+      boxShadow: {
+        card: "var(--shadow-card)", button: "var(--shadow-button)", dialog: "var(--shadow-dialog)",
       },
       borderRadius: {
         lg: "var(--radius)",

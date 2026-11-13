@@ -85,7 +85,7 @@ const LoginPage = () => {
         <div className="flex flex-col items-center gap-3">
           <img src={clinicLogo} alt="Logo" className="w-20 h-20 object-contain" />
           <div className="text-center">
-            <h1 className="text-xl font-bold text-foreground">DEMO — Sistema RIS</h1>
+            <h1 className="text-xl font-bold text-foreground">DMR by Nexo Imagen</h1>
             <p className="text-sm text-muted-foreground">Ecografía y Doppler</p>
           </div>
         </div>

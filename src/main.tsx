@@ -5,8 +5,13 @@ import { applyTheme, getStoredTheme } from "./lib/theme";
 
 // Modo claro u oscuro elegido en este dispositivo (antes de dibujar la pantalla, para que no parpadee)
 applyTheme(getStoredTheme());
+const fontLink = document.createElement('link');
+fontLink.rel = 'stylesheet';
+fontLink.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap';
+document.head.appendChild(fontLink);
 
-createRoot(document.getElementById("root")!).render(<App />);
+const root = document.getElementById("root");
+if (root) createRoot(root).render(<App />);
 
 // Register Service Worker (only in production, not in iframes/preview)
 if ("serviceWorker" in navigator) {
