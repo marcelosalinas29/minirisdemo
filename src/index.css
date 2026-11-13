@@ -73,10 +73,15 @@
     --agenda-next-foreground: 0 0% 100%;
     --agenda-next-secondary: 214 30% 82%;
     --shadow-agenda-next: 0 8px 24px -12px hsl(217 70% 20% / .5);
+    --gradient-agenda-day: linear-gradient(135deg, #0b1d3f 0%, #2a4a8a 35%, #8fa3c7 48%, #dfe7f5 50%, #8fa3c7 52%, #1c3366 100%);
+    --shadow-agenda-day: 0 2px 3px hsl(219 70% 15% / .18);
+    --gradient-agenda-divider: linear-gradient(90deg, hsl(217 70% 20%), transparent);
     --nexo-edge: 217 70% 20% / .12;
     --shadow-nexo-small: inset 0 1px 0 hsl(0 0% 100% / .65), 0 6px 16px -6px hsl(217 70% 20% / .35), 0 2px 4px hsl(217 70% 20% / .15);
   }
   .dark {
+    --gradient-agenda-day: linear-gradient(135deg, #f2f6fc 0%, #a9b8d4 42%, #f2f6fc 50%, #a9b8d4 53%, #5f86d6 100%);
+    --shadow-agenda-day: 0 0 18px hsl(220 59% 61% / .28);
     --agenda-tint: .16;
     --agenda-pill-lightness: 78%;
     --nexo-edge: 222 100% 74% / .18;
@@ -244,8 +249,9 @@
 .sidebar-link:hover { color: hsl(var(--sidebar-foreground)); background: hsl(var(--sidebar-primary) / .12); }
 .sidebar-link-active { color: hsl(var(--sidebar-foreground)); background: hsl(var(--sidebar-primary) / .18); }
 .sidebar-link-active::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 3px; background: hsl(var(--sidebar-primary)); }
-.agenda-day { color: hsl(var(--action-primary)); }
-.dark .agenda-day { background: linear-gradient(150deg, hsl(var(--action-primary)), hsl(var(--accent))); background-clip: text; color: transparent; }
+.agenda-day { background: var(--gradient-agenda-day); background-clip: text; -webkit-background-clip: text; color: transparent; filter: drop-shadow(var(--shadow-agenda-day)); letter-spacing: 0; }
+.agenda-date-header { position: relative; }
+.agenda-date-header::after { content: ""; position: absolute; bottom: 0; left: 0; right: 0; height: 1px; background: var(--gradient-agenda-divider); }
 .agenda-table { border-collapse: separate; border-spacing: 0 9px; }
 .agenda-table th { border: 0; padding: 8px; white-space: normal; }
 .agenda-table thead tr { background: transparent; }

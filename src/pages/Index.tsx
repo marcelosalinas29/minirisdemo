@@ -200,9 +200,10 @@ const Index = () => {
   return (
     <AppLayout title="Agenda">
       <div className="p-4 lg:p-7 space-y-5 max-w-[1600px] mx-auto">
-        <div className="flex items-center gap-5">
-          <span className="agenda-day text-[88px] leading-none font-bold tabular-nums">{format(selectedDate, 'dd')}</span>
-          <div><h1 className="text-2xl font-semibold capitalize">{format(selectedDate, 'EEEE', { locale: es })}</h1><p className="text-base text-muted-foreground capitalize">{format(selectedDate, 'MMMM yyyy', { locale: es })}</p></div>
+        <div className="agenda-date-header flex items-center gap-4 pb-5 sm:gap-5">
+          <span className="agenda-day shrink-0 text-[64px] font-light leading-[0.9] tabular-nums sm:text-[88px]">{format(selectedDate, 'dd')}</span>
+          <span aria-hidden="true" className="h-14 w-px shrink-0 bg-border" />
+          <div className="min-w-0"><h1 className="text-lg font-medium uppercase text-foreground">{format(selectedDate, 'EEEE', { locale: es })}</h1><p className="mt-2 text-sm font-normal text-muted-foreground sm:text-base">{format(selectedDate, 'MMMM yyyy', { locale: es })}</p></div>
         </div>
         {/* Top bar: date nav + doctor filter */}
         <div className="flex flex-wrap items-center justify-between gap-2">
