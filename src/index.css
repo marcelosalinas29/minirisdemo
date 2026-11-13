@@ -51,6 +51,13 @@
     --shadow-card: 0 3px 16px -8px hsl(var(--foreground) / 0.12);
     --shadow-button: 0 2px 5px -2px hsl(var(--primary) / 0.25);
     --shadow-dialog: 0 20px 60px -16px hsl(var(--overlay) / 0.4);
+    --brand-night: 226 65% 7%;
+    --brand-surface: 225 63% 12%;
+    --brand-ink: 222 77% 95%;
+    --brand-silver: 214 20% 72%;
+    --brand-electric: 221 100% 62%;
+    --gradient-brand: linear-gradient(135deg, hsl(var(--brand-night)), hsl(var(--brand-surface)));
+    --shadow-brand-mark: 0 0 20px hsl(var(--brand-electric) / .16);
   }
   .dark {
     --background: 226 65% 7%;
@@ -210,6 +217,13 @@
 }
 
 /* Step 2: navigation and agenda presentation only. */
+.login-brand { background: var(--gradient-brand); color: hsl(var(--brand-ink)); }
+.login-brand::before { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 43%, hsl(var(--brand-electric) / .12), transparent 65%); pointer-events: none; }
+.login-brand::after { content: ""; position: absolute; inset: 0; background-image: radial-gradient(hsl(var(--brand-silver) / .09) .7px, transparent .7px); background-size: 26px 26px; pointer-events: none; }
+.login-brand-subtitle { color: hsl(var(--brand-silver)); }
+.login-brand-tagline { color: hsl(var(--brand-silver) / .75); }
+.login-brand-mark { filter: drop-shadow(var(--shadow-brand-mark)); animation: nexo-enter 600ms ease-out both; }
+@keyframes nexo-enter { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: scale(1); } }
 .sidebar-link { color: hsl(var(--sidebar-foreground) / .76); transition: background-color 150ms, color 150ms; }
 .sidebar-link:hover { color: hsl(var(--sidebar-foreground)); background: hsl(var(--sidebar-primary) / .12); }
 .sidebar-link-active { color: hsl(var(--sidebar-foreground)); background: hsl(var(--sidebar-primary) / .18); }

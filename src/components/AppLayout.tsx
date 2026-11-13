@@ -8,6 +8,7 @@ import { useClinicStore } from '@/store/useClinicStore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import CommunicationCenter, { useChatUnread } from '@/components/CommunicationCenter';
 import ThemeToggle from '@/components/ThemeToggle';
+import NexoMark from '@/components/NexoMark';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -53,7 +54,7 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
   const sidebarContent = (
     <div className="flex h-full min-h-0 flex-col">
       <Link to={isViewer ? '/consultor' : '/'} onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-6 pt-9 pb-8">
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sidebar-foreground/10 text-sidebar-primary text-2xl font-bold">N</span>
+        <NexoMark variant="silver" className="h-12 w-12 shrink-0" />
         <div><p className="text-3xl font-bold text-sidebar-foreground">DMR</p><p className="text-xs text-silver">by Nexo Imagen</p></div>
       </Link>
       <span className="mx-6 mb-5 self-start rounded border border-silver/30 px-2 py-1 text-[10px] font-semibold text-silver">DEMO</span>

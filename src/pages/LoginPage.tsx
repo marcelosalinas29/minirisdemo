@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import clinicLogo from '@/assets/clinic-logo.png';
+import NexoMark from '@/components/NexoMark';
+import ThemeToggle from '@/components/ThemeToggle';
 import { Stethoscope, ClipboardList, Eye, Sparkles, Lock } from 'lucide-react';
 
 // 🔒 Contraseña del evento — cambiala antes de cada presentación
@@ -80,37 +81,55 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
-      <div className="w-full max-w-sm space-y-5">
-        <div className="flex flex-col items-center gap-3">
-          <img src={clinicLogo} alt="Logo" className="w-20 h-20 object-contain" />
-          <div className="text-center">
-            <h1 className="text-xl font-bold text-foreground">DMR by Nexo Imagen</h1>
-            <p className="text-sm text-muted-foreground">Ecografía y Doppler</p>
+    <div className="login-screen min-h-screen bg-background lg:grid lg:grid-cols-[55%_45%]">
+      <section className="login-brand relative flex flex-col items-center justify-center overflow-hidden px-6 py-7 lg:sticky lg:top-0 lg:h-screen lg:px-10 lg:py-12" aria-label="DMR by Nexo Imagen">
+        <div className="relative flex items-center gap-5 lg:flex-col lg:gap-6">
+          <NexoMark variant="silver" className="login-brand-mark h-24 w-24 shrink-0 lg:h-[320px] lg:w-[347px]" />
+          <div className="text-left lg:text-center">
+            <h1 className="login-brand-title text-3xl font-bold lg:text-6xl">DMR</h1>
+            <p className="login-brand-subtitle mt-2 text-sm lg:text-xl">by Nexo Imagen</p>
           </div>
         </div>
+        <p className="login-brand-tagline relative mt-5 text-center text-xs lg:mt-12 lg:text-sm">Diagnóstico por imágenes de precisión</p>
+      </section>
+      <section className="relative flex min-w-0 flex-col items-center justify-center px-5 py-10 lg:min-h-screen lg:px-8 lg:py-16">
+        <div className="absolute right-4 top-3 lg:right-6 lg:top-5">
+          <ThemeToggle className="text-foreground hover:bg-secondary hover:text-foreground" />
+        </div>
+        <div className="w-full max-w-[420px]">
+          <div className="mb-5 hidden justify-center lg:flex">
+            <NexoMark variant="color" className="h-10 w-11 dark:hidden" />
+            <NexoMark variant="silver" className="hidden h-10 w-11 dark:block" />
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5 text-card-foreground shadow-card sm:p-7">
+            <div className="mb-6 flex items-center justify-between gap-3">
+              <div><h2 className="text-xl font-semibold">Iniciar sesión</h2><p className="mt-1 text-xs text-muted-foreground">Ecografía y Doppler</p></div>
+              <span className="rounded border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground">DEMO</span>
+            </div>
 
         {/* Quick access demo buttons (locked behind event password) */}
         {unlocked ? (
-          <div className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-3">
+          <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <Sparkles className="w-4 h-4 text-primary" />
               Acceso rápido demo
             </div>
             <div className="space-y-2">
               {DEMO_ACCOUNTS.map(({ email: e, password: p, label, icon: Icon, desc }) => (
-                <button
+                <Button
+                  type="button"
+                  variant="outline"
                   key={e}
                   onClick={() => signIn(e, p)}
                   disabled={submitting}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors text-left disabled:opacity-50"
+                  className="h-auto w-full justify-start gap-3 whitespace-normal px-3 py-2.5 text-left hover:border-primary hover:bg-primary/5"
                 >
                   <Icon className="w-4 h-4 text-primary flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium text-foreground">{label}</div>
-                    <div className="text-[11px] text-muted-foreground truncate">{desc}</div>
-                  </div>
-                </button>
+                  <span className="flex-1 min-w-0">
+                    <span className="block text-sm font-medium text-foreground">{label}</span>
+                    <span className="block text-[11px] text-muted-foreground">{desc}</span>
+                  </span>
+                </Button>
               ))}
             </div>
             <p className="text-[11px] text-muted-foreground text-center">
@@ -118,7 +137,7 @@ const LoginPage = () => {
             </p>
           </div>
         ) : (
-          <form onSubmit={tryUnlock} className="bg-card border border-border rounded-xl p-4 shadow-sm space-y-3">
+          <form onSubmit={tryUnlock} className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
               <Lock className="w-4 h-4 text-primary" />
               Acceso al demo
@@ -138,7 +157,7 @@ const LoginPage = () => {
         )}
 
         {/* Standard login */}
-        <form onSubmit={handleLogin} className="bg-card border border-border rounded-xl p-5 shadow-sm space-y-3">
+        <form onSubmit={handleLogin} className="mt-6 space-y-3 border-t border-border pt-5">
           <h2 className="font-semibold text-center text-sm text-muted-foreground">O ingresá manualmente</h2>
           <div className="space-y-1">
             <Label htmlFor="email" className="text-xs">Correo electrónico</Label>
@@ -151,26 +170,29 @@ const LoginPage = () => {
           <Button type="submit" className="w-full" disabled={submitting}>
             {submitting ? 'Ingresando...' : 'Ingresar'}
           </Button>
-          <button type="button" onClick={handleForgot} className="w-full text-xs text-primary underline">Olvidé mi contraseña</button>
+          <Button type="button" variant="link" onClick={handleForgot} className="h-auto w-full py-1 text-xs text-primary underline">Olvidé mi contraseña</Button>
         </form>
+          </div>
 
         {/* Seed/reset demo */}
-        <div className="text-center">
-          <button
+        <div className="mt-4 text-center">
+          <Button
+            variant="link"
             onClick={handleSeed}
             disabled={seeding}
-            className="text-xs text-muted-foreground hover:text-primary underline disabled:opacity-50"
+            className="h-auto whitespace-normal py-1 text-xs text-muted-foreground hover:text-primary underline disabled:opacity-50"
           >
             {seeding ? 'Generando datos...' : 'Regenerar datos de demostración'}
-          </button>
+          </Button>
         </div>
 
         {/* Copyright notice */}
-        <p className="text-[10px] text-muted-foreground text-center leading-relaxed px-2">
+        <p className="mt-4 text-[10px] text-muted-foreground text-center leading-relaxed px-2">
           © 2026 Diagnóstico Médico Reconquista — Todos los derechos reservados.<br />
           Software propietario. Prohibida su reproducción, distribución o uso sin autorización escrita.
         </p>
-      </div>
+        </div>
+      </section>
     </div>
   );
 };
