@@ -1,12 +1,12 @@
 import { ReactNode, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, Users, PlusCircle, LogOut, Search, X, MessageSquare, History } from 'lucide-react';
-import clinicLogo from '@/assets/clinic-logo.png';
+import { Calendar, Users, PlusCircle, LogOut, Search, X, MessageSquare, History, Menu, Settings, FileUp, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useClinicStore } from '@/store/useClinicStore';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import CommunicationCenter, { useChatUnread } from '@/components/CommunicationCenter';
-import { Badge } from '@/components/ui/badge';
 import ThemeToggle from '@/components/ThemeToggle';
 
 interface AppLayoutProps {
@@ -16,7 +16,7 @@ interface AppLayoutProps {
 }
 
 const allNavItems = [
-  { path: '/', icon: Calendar, label: 'Citas' },
+  { path: '/', icon: Calendar, label: 'Agenda' },
   { path: '/patients', icon: Users, label: 'Pacientes' },
   { path: '/historial', icon: History, label: 'Historial' },
   { path: '/new', icon: PlusCircle, label: 'Nueva' },
@@ -27,6 +27,9 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
   const navigate = useNavigate();
   const { profile, role, signOut, isViewer } = useAuth();
   const navItems = isViewer ? [{ path: '/consultor', icon: Search, label: 'Buscar estudios' }] : allNavItems;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sideItems = isViewer ? navItems : [...navItems, { path: '/importar', icon: FileUp, label: 'Importar' }, { path: '/schedule', icon: Settings, label: 'Configuración' }];
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [commOpen, setCommOpen] = useState(false);
@@ -41,86 +44,64 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
   }, [searchQuery]);
 
   const searchResults = searchQuery.length >= 2 ? searchPatients(searchQuery) : [];
-
   const handleSignOut = async () => {
     await signOut();
     navigate('/login');
   };
-
   const initials = (profile?.full_name || 'U').split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 
-  return (
-    <div className="flex flex-col min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 header-institutional px-4 py-3">
-        <div className="flex items-center gap-3 max-w-2xl mx-auto">
-          <img src={clinicLogo} alt="DMR" className="w-9 h-9 rounded-lg object-cover bg-primary-foreground/10 p-0.5" />
-          <div className="flex-1 min-w-0">
-            <h1 className="text-sm font-bold text-primary-foreground/90 tracking-wide uppercase flex items-center gap-1.5">
-              DMR by Nexo Imagen
-              <span className="text-[9px] font-bold bg-amber-400 text-amber-950 px-1.5 py-0.5 rounded">DEMO</span>
-            </h1>
-            <p className="text-xs text-primary-foreground/60 truncate">{title}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            {showComm && (
-              <button
-                onClick={() => {
-                  const next = !commOpen;
-                  setCommOpen(next);
-                  setChatOpen(next);
-                  if (next) setSearchOpen(false);
-                }}
-                className="relative p-1.5 text-primary-foreground/70 hover:text-primary-foreground transition-colors"
-                title="Centro de Comunicación"
-              >
-                <MessageSquare className="w-4 h-4" />
-                {unreadCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                    {unreadCount > 9 ? '9+' : unreadCount}
-                  </span>
-                )}
-              </button>
-            )}
-            {!isViewer && <button
-              onClick={() => setSearchOpen(!searchOpen)}
-              className="p-1.5 text-primary-foreground/70 hover:text-primary-foreground transition-colors"
-              title="Buscar paciente"
-            >
-              <Search className="w-4 h-4" />
-            </button>}
-            {profile && (
-              <button
-                onClick={() => navigate('/profile')}
-                className="flex items-center gap-1.5 text-xs text-primary-foreground/80 hover:text-primary-foreground transition-colors"
-              >
-                <Avatar className="w-6 h-6">
-                  {profile.avatar_url ? (
-                    <AvatarImage src={profile.avatar_url} alt={profile.full_name} />
-                  ) : null}
-                  <AvatarFallback className="text-[10px] font-bold bg-primary-foreground/20 text-primary-foreground">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="hidden sm:inline">
-                  {role === 'secretary' ? 'Secretaria' : profile.full_name.split(' ')[0]}
-                </span>
-              </button>
-            )}
-            <button
-              onClick={handleSignOut}
-              className="p-1.5 text-primary-foreground/70 hover:text-primary-foreground transition-colors"
-              title="Cerrar sesión"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
+  const sidebarContent = (
+    <div className="flex h-full min-h-0 flex-col">
+      <Link to={isViewer ? '/consultor' : '/'} onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-6 pt-9 pb-8">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-sidebar-foreground/10 text-sidebar-primary text-2xl font-bold">N</span>
+        <div><p className="text-3xl font-bold text-sidebar-foreground">DMR</p><p className="text-xs text-silver">by Nexo Imagen</p></div>
+      </Link>
+      <span className="mx-6 mb-5 self-start rounded border border-silver/30 px-2 py-1 text-[10px] font-semibold text-silver">DEMO</span>
+      <nav aria-label="Navegación lateral" className="flex-1 overflow-y-auto px-3 space-y-1">
+        {sideItems.map(({ path, icon: Icon, label }) => (
+          <Button key={path} asChild variant="ghost" className={`sidebar-link relative h-11 w-full justify-start gap-3 px-4 ${location.pathname === path ? 'sidebar-link-active' : ''}`}>
+            <Link to={path} title={label} onClick={() => setMenuOpen(false)} aria-current={location.pathname === path ? 'page' : undefined}><Icon className="h-5 w-5 shrink-0" /><span className="sidebar-label">{label}</span></Link>
+          </Button>
+        ))}
+      </nav>
+      <div className="mt-5 border-t border-sidebar-border px-5 py-5 space-y-3">
+        <div className="flex gap-2">
+          {!isViewer && <Button variant="ghost" size="icon" className="sidebar-link h-9 w-9" title="Buscar paciente" onClick={() => { setSearchOpen(!searchOpen); setMenuOpen(false); }}><Search className="h-4 w-4" /></Button>}
+          {showComm && <Button variant="ghost" size="icon" className="sidebar-link relative h-9 w-9" title="Centro de Comunicación" onClick={() => { const next = !commOpen; setCommOpen(next); setChatOpen(next); if (next) setSearchOpen(false); setMenuOpen(false); }}><MessageSquare className="h-4 w-4" />{unreadCount > 0 && <span className="absolute -right-1 -top-1 rounded-full bg-destructive px-1 text-[10px] text-destructive-foreground">{unreadCount > 9 ? '9+' : unreadCount}</span>}</Button>}
+          <ThemeToggle />
+          <Button variant="ghost" size="icon" className="sidebar-link h-9 w-9 ml-auto" title="Cerrar sesión" onClick={handleSignOut}><LogOut className="h-4 w-4" /></Button>
         </div>
+        {profile && <Button asChild variant="ghost" className="sidebar-link h-auto w-full justify-start gap-3 px-0 py-2">
+          <Link to="/profile" onClick={() => setMenuOpen(false)}>
+            <Avatar className="h-9 w-9 shrink-0">{profile.avatar_url && <AvatarImage src={profile.avatar_url} alt={profile.full_name} />}<AvatarFallback className="bg-sidebar-foreground/10 text-sidebar-foreground text-xs">{initials}</AvatarFallback></Avatar>
+            <span className="min-w-0 text-left whitespace-normal"><span className="block text-xs font-medium break-words">{profile.full_name}</span><span className="block text-[11px] text-silver">{role === 'secretary' ? 'Secretaria' : role === 'viewer' ? 'Médico visualizador' : 'Médico ejecutor'}</span></span>
+          </Link>
+        </Button>}
+      </div>
+    </div>
+  );
 
+  return (
+    <div className={`min-h-screen bg-background ${sidebarCollapsed ? 'lg:pl-20' : 'lg:pl-[264px]'}`}>
+      <aside className={`fixed inset-y-0 left-0 z-40 hidden border-r border-sidebar-border bg-sidebar text-sidebar-foreground lg:block ${sidebarCollapsed ? 'sidebar-mini w-20' : 'w-[264px]'}`}>{sidebarContent}</aside>
+      <Button variant="outline" size="icon" className={`fixed top-3 z-40 hidden h-7 w-7 lg:flex ${sidebarCollapsed ? 'left-[65px]' : 'left-[249px]'}`} title={sidebarCollapsed ? 'Expandir menú' : 'Contraer menú'} aria-label={sidebarCollapsed ? 'Expandir menú' : 'Contraer menú'} onClick={() => setSidebarCollapsed(!sidebarCollapsed)}>{sidebarCollapsed ? <PanelLeftOpen className="h-3.5 w-3.5" /> : <PanelLeftClose className="h-3.5 w-3.5" />}</Button>
+      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+        <SheetContent side="left" className="w-[264px] max-w-[85vw] bg-sidebar text-sidebar-foreground border-sidebar-border p-0">
+          <SheetTitle className="sr-only">Menú DMR</SheetTitle>
+          {sidebarContent}
+        </SheetContent>
+      </Sheet>
+      <header className="sticky top-0 z-30 header-institutional lg:hidden">
+        <div className="flex h-14 items-center gap-3 px-4">
+          <Button variant="ghost" size="icon" className="sidebar-link h-9 w-9" title="Abrir menú" aria-label="Abrir menú" onClick={() => setMenuOpen(true)}><Menu className="h-5 w-5" /></Button>
+          <span className="font-bold text-sidebar-foreground">DMR</span><span className="flex-1 truncate text-xs text-silver">{title}</span>
+          <ThemeToggle />
+        </div>
+      </header>
+      <div className="relative z-30">
         {/* Global Search Bar */}
         {searchOpen && (
-          <div className="mt-2 max-w-2xl mx-auto animate-slide-up">
+          <div className="fixed top-16 lg:top-5 left-4 right-4 lg:left-[284px] lg:right-6 max-w-2xl mx-auto animate-slide-up">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -180,15 +161,15 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
             onOpen={() => setChatOpen(true)}
           />
         )}
-      </header>
+      </div>
 
       {/* Content */}
-      <main className="flex-1 overflow-y-auto pb-20">
+      <main className="min-w-0 pb-20 lg:pb-6">
         {children}
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-md border-t border-border shadow-institutional">
+      <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-card/95 backdrop-blur-md border-t border-border shadow-institutional">
         <div className="flex justify-around items-center h-16 max-w-lg mx-auto">
           {navItems.map(({ path, icon: Icon, label }) => {
             const isActive = location.pathname === path;

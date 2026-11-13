@@ -350,12 +350,13 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
 
   return (
     <div className="space-y-2">
-      <h2 className="text-sm font-semibold text-muted-foreground">
-        {format(selectedDate, "EEEE d 'de' MMMM yyyy", { locale: es })} — {occupiedCount} cita(s)
-      </h2>
+      <div className="flex items-center gap-4 border-b border-border pb-4 mb-4">
+        <span className="text-3xl font-semibold tabular-nums text-status-pending">{occupiedCount}</span>
+        <h2 className="text-sm text-muted-foreground">Turnos del día</h2>
+      </div>
 
       <div>
-        <table className="w-full text-xs border-collapse table-auto">
+        <table className="agenda-table w-full text-xs table-auto">
           <thead>
             <tr className="bg-muted/50">
               <th className="p-2 border border-border text-left font-semibold text-muted-foreground whitespace-nowrap">Hora</th>
@@ -388,23 +389,23 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                 <React.Fragment key={`slot-${slot}-${apt?.id ?? 'libre'}`}>
                   {showMorningSep && (
                     <tr key="morning-sep">
-                      <td colSpan={10} className="py-1.5 px-2 bg-primary/10 text-center text-[11px] text-primary font-bold border border-border border-t-2 border-t-primary/40 tracking-widest">
+                      <td colSpan={10} className="py-1.5 px-2 bg-primary/10 text-center text-[11px] text-primary font-bold border border-border border-t-2 border-t-primary/40 tracking-normal">
                         ☀ MAÑANA
                       </td>
                     </tr>
                   )}
                   {showAfternoonSep && (
                     <tr key="afternoon-sep">
-                      <td colSpan={10} className="py-1.5 px-2 bg-amber-500/10 text-center text-[11px] text-amber-700 dark:text-amber-400 font-bold border border-border border-t-2 border-t-amber-500/40 tracking-widest">
+                      <td colSpan={10} className="py-1.5 px-2 bg-status-late/10 text-center text-[11px] text-status-late font-bold border border-border border-t-2 border-t-status-late/40 tracking-normal">
                         🌅 TARDE
                       </td>
                     </tr>
                   )}
                   <tr
                     key={`row-${slot}-${apt?.id ?? 'libre'}`}
-                    className={`transition-colors ${apt && isInactiveStatus(apt.status) ? 'bg-muted/40 opacity-60' : arrivalOf(apt) === 'arrived' ? 'agenda-arrived' : arrivalOf(apt) === 'late' ? 'agenda-late' : arrivalOf(apt) === 'missed' ? 'agenda-missed' : extra ? 'bg-status-late/5 border-l-[3px] border-l-status-late' : overbook ? 'bg-accent/5 border-l-[3px] border-l-accent' : isOccupied ? 'bg-card hover:bg-muted/30' : 'opacity-50 hover:opacity-80 hover:bg-muted/20'}`}
+                    data-occupied={isOccupied} data-editing={!!isEditing} className={`agenda-row transition-colors ${apt && isInactiveStatus(apt.status) ? 'bg-muted/40 opacity-60' : arrivalOf(apt) === 'arrived' ? 'agenda-arrived' : arrivalOf(apt) === 'late' ? 'agenda-late' : arrivalOf(apt) === 'missed' ? 'agenda-missed' : extra ? 'bg-status-late/5 border-l-[3px] border-l-status-late' : overbook ? 'bg-accent/5 border-l-[3px] border-l-accent' : isOccupied ? 'agenda-pending bg-card hover:bg-muted/30' : 'opacity-50 hover:opacity-80 hover:bg-muted/20'}`}
                   >
-                    <td className="p-1.5 border border-border tabular-nums text-center text-muted-foreground font-semibold">
+                    <td data-label="Hora" className="p-1.5 border border-border tabular-nums text-center text-muted-foreground font-semibold">
                       {slot}
                       {overbook && <span className="ml-1 text-[9px] text-accent font-bold">ST</span>}
                       {(extra || apt?.esSobreturno) && (
@@ -422,7 +423,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
 
                     {isOccupied && apt ? (
                       <>
-                        <td className="p-1.5 border border-border whitespace-nowrap">
+                        <td data-label="Paciente" className="p-1.5 border border-border whitespace-nowrap">
                           {isEditing ? (
                             <Input value={editData.patientName} onChange={(e) => setEditData(d => ({ ...d, patientName: e.target.value.toUpperCase() }))} className="h-7 text-xs uppercase" placeholder="Nombre" />
                           ) : (
@@ -431,7 +432,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                             </span>
                           )}
                         </td>
-                        <td className="p-1.5 border border-border">
+                        <td data-label="Estudio" className="p-1.5 border border-border">
                           {isEditing ? (
                             <div className="space-y-1">
                               <Input value={editData.studyType} onChange={(e) => setEditData(d => ({ ...d, studyType: e.target.value }))} className="h-7 text-xs" />
@@ -445,17 +446,17 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                               )}
                             </div>
                           ) : (
-                            <span className="uppercase font-bold">{formatStudyType(apt.studyType)}</span>
+                            <div><span className="uppercase font-semibold">{formatStudyType(apt.studyType)}</span>{apt.doctorId && <p className="mt-1 text-[11px] text-muted-foreground">{doctorName(apt.doctorId)}</p>}</div>
                           )}
                         </td>
-                        <td className="p-1.5 border border-border text-muted-foreground">
+                        <td data-label="DNI" className="p-1.5 border border-border text-muted-foreground">
                           {isEditing ? (
                             <Input value={editData.patientDni} onChange={(e) => setEditData(d => ({ ...d, patientDni: e.target.value }))} className="h-7 text-xs" placeholder="DNI" />
                           ) : (
                             <span className="flex items-center gap-1">
                               {apt.patient.dni || '-'}
                               {hasHistory ? (
-                                <button
+                                <Button variant="ghost" size="icon"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setHistoryAdding(false);
@@ -463,13 +464,13 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                                      setHistoryPatientDni(apt.patient.dni || '');
                                     setHistoryPatientName(apt.patient.name);
                                   }}
-                                  className="text-primary hover:text-primary/80 transition-colors"
+                                  className="h-7 w-7 text-primary hover:text-primary/80 transition-colors"
                                   title="Ver historial de estudios"
                                 >
                                   <ClipboardList className="w-3.5 h-3.5" />
-                                </button>
+                                </Button>
                               ) : canUpload ? (
-                                <button
+                                <Button variant="ghost" size="icon"
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     setHistoryAdding(true);
@@ -477,16 +478,16 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                                      setHistoryPatientDni(apt.patient.dni || '');
                                     setHistoryPatientName(apt.patient.name);
                                   }}
-                                  className="text-primary hover:text-primary/80 transition-colors"
+                                  className="h-7 w-7 text-primary hover:text-primary/80 transition-colors"
                                   title="Cargar estudio previo"
                                 >
                                   <Plus className="w-3.5 h-3.5" />
-                                </button>
+                                </Button>
                               ) : null}
                             </span>
                           )}
                         </td>
-                        <td className="p-1.5 border border-border text-muted-foreground">
+                        <td data-label="F.Nac. / Edad" className="p-1.5 border border-border text-muted-foreground">
                           {isEditing ? (
                             <div className="flex flex-col gap-0.5">
                               <Input type="date" value={editData.patientFechaNacimiento} onChange={(e) => setEditData(d => ({ ...d, patientFechaNacimiento: e.target.value }))} className="h-7 text-xs" />
@@ -510,21 +511,21 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                             </div>
                           )}
                         </td>
-                        <td className="p-1.5 border border-border text-muted-foreground">
+                        <td data-label="Teléfono" className="p-1.5 border border-border text-muted-foreground">
                           {isEditing ? (
                             <Input value={editData.patientPhone} onChange={(e) => setEditData(d => ({ ...d, patientPhone: e.target.value }))} className="h-7 text-xs" placeholder="Teléfono" />
                           ) : (
                             apt.patient.phone?.replace(/^\+54\s?/, '') || '-'
                           )}
                         </td>
-                        <td className="p-1.5 border border-border text-muted-foreground">
+                        <td data-label="Obra Social" className="p-1.5 border border-border text-muted-foreground">
                           {isEditing ? (
                             <Input value={editData.patientObraSocial} onChange={(e) => setEditData(d => ({ ...d, patientObraSocial: e.target.value.toUpperCase() }))} className="h-7 text-xs uppercase" placeholder="Obra Social" />
                           ) : (
                             apt.patient.obraSocial || '-'
                           )}
                         </td>
-                        <td className="p-1.5 border border-border">
+                        <td data-label="Estado" className="p-1.5 border border-border">
                           {isEditing ? (
                             <Select value={editData.status} onValueChange={(v) => setEditData(d => ({ ...d, status: v as StudyStatus }))}>
                               <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
@@ -553,29 +554,29 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                             </Badge>
                           )}
                         </td>
-                        <td className="p-1.5 border border-border">
+                        <td data-label="Observaciones" className="p-1.5 border border-border">
                           {isEditing ? (
                             <Input value={editData.observations} onChange={(e) => setEditData(d => ({ ...d, observations: e.target.value.toUpperCase() }))} className="h-7 text-xs uppercase" placeholder="Observaciones..." />
                           ) : (
                             <span className="text-muted-foreground">{apt.observations || '-'}</span>
                           )}
                         </td>
-                        <td className="p-1.5 border border-border text-center">
+                        <td data-label="Acciones" className="p-1.5 border border-border text-center">
                           {isEditing ? (
                             <div className="flex items-center justify-center gap-0.5">
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => saveEdit(apt)}>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => saveEdit(apt)}>
                                 <Save className="w-3 h-3 text-primary" />
                               </Button>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={cancelEdit}>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={cancelEdit}>
                                 <X className="w-3 h-3 text-destructive" />
                               </Button>
                             </div>
                           ) : (
-                            <div className="flex items-center justify-center gap-0.5">
+                            <div className="flex items-center justify-center gap-1 flex-wrap">
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <Button
-                                    variant="ghost" size="sm" className="h-6 w-6 p-0"
+                                    variant="ghost" size="sm" className="h-8 w-8 p-0"
                                     onClick={(e) => e.stopPropagation()}
                                     title={arrivalOf(apt) ? ARRIVAL_LABELS[arrivalOf(apt) as 'arrived' | 'late' | 'missed'] : 'Marcar llegada'}
                                   >
@@ -612,13 +613,13 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                                   )}
                                 </PopoverContent>
                               </Popover>
-                              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => startEdit(apt)} title="Editar">
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => startEdit(apt)} title="Editar">
                                 <Edit2 className="w-3 h-3 text-muted-foreground" />
                               </Button>
                               {apt.status === 'sent' ? (
                                 <>
                                   <Button
-                                    variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-40 cursor-not-allowed"
+                                    variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-40 cursor-not-allowed"
                                     disabled
                                     title="Bloqueado: estudio enviado"
                                     onClick={(e) => { e.stopPropagation(); toast.info('Estudio enviado: traslado bloqueado por seguridad'); }}
@@ -626,7 +627,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                                     <Lock className="w-3 h-3 text-muted-foreground" />
                                   </Button>
                                   <Button
-                                    variant="ghost" size="sm" className="h-6 w-6 p-0 opacity-40 cursor-not-allowed"
+                                    variant="ghost" size="sm" className="h-8 w-8 p-0 opacity-40 cursor-not-allowed"
                                     disabled
                                     title="Bloqueado: estudio enviado"
                                     onClick={(e) => { e.stopPropagation(); toast.info('Estudio enviado: eliminación bloqueada por seguridad'); }}
@@ -636,10 +637,10 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                                 </>
                               ) : (
                                 <>
-                                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => openReschedule(apt)} title="Trasladar">
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openReschedule(apt)} title="Trasladar">
                                     <CalendarDays className="w-3 h-3 text-muted-foreground" />
                                   </Button>
-                                  <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => setDeleteTarget(apt)} title="Eliminar">
+                                  <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setDeleteTarget(apt)} title="Eliminar">
                                     <Trash2 className="w-3 h-3 text-destructive" />
                                   </Button>
                                 </>
@@ -661,7 +662,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                     ) : blockedBySpecial.has(slot) ? (
                       <td
                         colSpan={9}
-                        className="p-1.5 border border-border text-center text-amber-700 dark:text-amber-400 italic bg-amber-500/5 text-[11px]"
+                        className="p-1.5 border border-border text-center text-status-late italic bg-status-late/5 text-[11px]"
                         title={`Ocupado por estudio especial previo (${formatStudyType(blockedBySpecial.get(slot)!.studyType)} - ${blockedBySpecial.get(slot)!.time})`}
                       >
                         ⏳ Continuación de {blockedBySpecial.get(slot)!.time} ({formatStudyType(blockedBySpecial.get(slot)!.studyType)})

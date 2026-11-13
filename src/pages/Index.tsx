@@ -199,11 +199,15 @@ const Index = () => {
 
   return (
     <AppLayout title="Agenda">
-      <div className="p-4 space-y-4">
+      <div className="p-4 lg:p-7 space-y-5 max-w-[1600px] mx-auto">
+        <div className="flex items-center gap-5">
+          <span className="agenda-day text-[88px] leading-none font-bold tabular-nums">{format(selectedDate, 'dd')}</span>
+          <div><h1 className="text-2xl font-semibold capitalize">{format(selectedDate, 'EEEE', { locale: es })}</h1><p className="text-base text-muted-foreground capitalize">{format(selectedDate, 'MMMM yyyy', { locale: es })}</p></div>
+        </div>
         {/* Top bar: date nav + doctor filter */}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setSelectedDate(d => subDays(d, 1))}>
+            <Button variant="outline" size="sm" title="Día anterior" aria-label="Día anterior" onClick={() => setSelectedDate(d => subDays(d, 1))}>
               <ChevronLeft className="w-4 h-4" />
             </Button>
             <Popover>
@@ -228,12 +232,12 @@ const Index = () => {
                 />
               </PopoverContent>
             </Popover>
-            <Button variant="outline" size="sm" onClick={() => setSelectedDate(d => addDays(d, 1))}>
+            <Button variant="outline" size="sm" title="Día siguiente" aria-label="Día siguiente" onClick={() => setSelectedDate(d => addDays(d, 1))}>
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Select value={selectedDoctorId} onValueChange={setSelectedDoctorId}>
               <SelectTrigger className="h-8 text-xs w-[180px]">
                 <SelectValue placeholder="Todos los médicos" />
