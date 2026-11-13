@@ -36,9 +36,21 @@ const statusClass: Record<StudyStatus, string> = {
   'in-study': 'status-badge-in-study',
   'reported': 'status-badge-reported',
   'sent': 'status-badge-sent',
-  'cancelled': 'bg-muted text-muted-foreground line-through',
-  'no-show': 'bg-muted text-muted-foreground',
+  'cancelled': 'status-badge-cancelled line-through',
+  'no-show': 'status-badge-missed',
 };
+
+export function getAgendaSummary(appointments: Appointment[]) {
+  const active = appointments.filter(a => !isInactiveStatus(a.status));
+  const pending = active.filter(a => a.status === 'pending' && resolveArrival(a) === null);
+  return {
+    next: [...pending].sort((a, b) => a.time.localeCompare(b.time))[0],
+    arrived: active.filter(a => resolveArrival(a) === 'arrived').length,
+    late: active.filter(a => resolveArrival(a) === 'late').length,
+    missed: appointments.filter(a => a.status === 'no-show' || (a.status !== 'cancelled' && resolveArrival(a) === 'missed')).length,
+    pending: pending.length,
+  };
+}
 
 function generateDefaultTimeSlots(): string[] {
   const slots: string[] = [];
@@ -205,6 +217,14 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
 
   const occupiedCount = appointments.filter((a) => !isInactiveStatus(a.status)).length;
 
+  const summary = useMemo(() => getAgendaSummary(appointments), [appointments]);
+  const markArrival = async (apt: Appointment, st: Exclude<ArrivalState, null>) => {
+    try {
+      await setArrivalState(apt.id, st);
+      toast.success(`${apt.patient.name}: ${ARRIVAL_LABELS[st].toLowerCase()}`);
+    } catch { toast.error('No se pudo guardar'); }
+  };
+
 
   const startEdit = (apt: Appointment) => {
     setEditingId(apt.id);
@@ -350,6 +370,19 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
 
   return (
     <div className="space-y-2">
+      <section aria-label="Próximo turno" className="agenda-next mb-5 grid min-w-0 gap-6 rounded-2xl p-5 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center lg:p-6">
+        <div className="min-w-0">
+          <p className="agenda-next-secondary mb-2 text-xs font-medium uppercase">PRÓXIMO TURNO{summary.next ? ` · ${summary.next.time}` : ''}</p>
+          {summary.next ? <>
+            <Button variant="link" onClick={() => navigate(`/appointment/${summary.next.id}`)} className="agenda-next-name h-auto max-w-full justify-start whitespace-normal p-0 text-left text-2xl font-bold leading-snug">{summary.next.patient.name}</Button>
+            <p className="agenda-next-secondary mt-2 text-sm">{formatStudyType(summary.next.studyType)} · {summary.next.patient.obraSocial || 'Sin obra social'}</p>
+          </> : <h2 className="text-xl font-semibold">{appointments.length ? 'Sin turnos pendientes' : 'Sin turnos para este día'}</h2>}
+        </div>
+        <div className="grid grid-cols-4 gap-3 lg:gap-5">
+          {([[summary.arrived, 'Llegaron'], [summary.late, 'Demorados'], [summary.missed, 'No llegaron'], [summary.pending, 'Pendientes']] as const).map(([count, label]) => <div key={label} className="min-w-0 text-center"><p className="text-2xl font-bold tabular-nums">{count}</p><p className="agenda-next-secondary mt-1 text-[10px] sm:text-xs">{label}</p></div>)}
+        </div>
+        {summary.next && !isViewer && editingId !== summary.next.id && <Button variant="secondary" className="agenda-next-arrival w-full gap-2 lg:w-auto" onClick={() => { if (summary.next) void markArrival(summary.next, 'arrived'); }}><UserCheck className="h-4 w-4" />Marcar llegada</Button>}
+      </section>
       <div className="flex items-center gap-4 border-b border-border pb-4 mb-4">
         <span className="text-3xl font-semibold tabular-nums text-status-pending">{occupiedCount}</span>
         <h2 className="text-sm text-muted-foreground">Turnos del día</h2>
@@ -403,7 +436,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                   )}
                   <tr
                     key={`row-${slot}-${apt?.id ?? 'libre'}`}
-                    data-occupied={isOccupied} data-editing={!!isEditing} className={`agenda-row transition-colors ${apt && isInactiveStatus(apt.status) ? 'bg-muted/40 opacity-60' : arrivalOf(apt) === 'arrived' ? 'agenda-arrived' : arrivalOf(apt) === 'late' ? 'agenda-late' : arrivalOf(apt) === 'missed' ? 'agenda-missed' : extra ? 'bg-status-late/5 border-l-[3px] border-l-status-late' : overbook ? 'bg-accent/5 border-l-[3px] border-l-accent' : isOccupied ? 'agenda-pending bg-card hover:bg-muted/30' : 'opacity-50 hover:opacity-80 hover:bg-muted/20'}`}
+                    data-occupied={isOccupied} data-editing={!!isEditing} className={`agenda-row transition-colors ${apt ? apt.status === 'cancelled' ? 'agenda-cancelled' : apt.status === 'no-show' ? 'agenda-missed' : arrivalOf(apt) === 'missed' ? 'agenda-missed' : apt.status === 'reported' ? 'agenda-reported' : apt.status === 'sent' ? 'agenda-sent' : arrivalOf(apt) === 'arrived' ? 'agenda-arrived' : arrivalOf(apt) === 'late' ? 'agenda-late' : apt.status === 'in-study' ? 'agenda-in-study' : 'agenda-pending' : 'opacity-50 hover:opacity-80 hover:bg-muted/20'}`}
                   >
                     <td data-label="Hora" className="p-1.5 border border-border tabular-nums text-center text-muted-foreground font-semibold">
                       {slot}
@@ -592,12 +625,7 @@ const DailyView = ({ appointments, selectedDate, doctorSlots, patientsWithHistor
                                     <button
                                       key={st}
                                       className="w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded hover:bg-muted text-left"
-                                      onClick={async () => {
-                                        try {
-                                          await setArrivalState(apt.id, st);
-                                          toast.success(`${apt.patient.name}: ${ARRIVAL_LABELS[st].toLowerCase()}`);
-                                        } catch { toast.error('No se pudo guardar'); }
-                                      }}
+                                      onClick={() => markArrival(apt, st)}
                                     >
                                       <span className={`w-3 h-3 rounded-full ${dot}`} />
                                       {ARRIVAL_LABELS[st]}{arrivalOf(apt) === st ? ' ✓' : ''}

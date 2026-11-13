@@ -58,10 +58,27 @@
     --brand-electric: 221 100% 62%;
     --gradient-brand: linear-gradient(135deg, hsl(var(--brand-night)), hsl(var(--brand-surface)));
     --shadow-brand-mark: 0 0 20px hsl(var(--brand-electric) / .16);
+    --status-arrived-strong: 160 84% 39%;
+    --status-late-strong: 38 92% 50%;
+    --status-missed-strong: 0 84% 60%;
+    --status-cancelled-strong: 215 16% 47%;
+    --status-pending-strong: 227 100% 59%;
+    --status-in-study-strong: 210 90% 48%;
+    --status-reported-strong: 191 96% 39%;
+    --status-sent-strong: 168 86% 36%;
+    --agenda-tint: .12;
+    --agenda-pill-lightness: 30%;
+    --agenda-next-start: 225 63% 12%;
+    --agenda-next-end: 217 70% 20%;
+    --agenda-next-foreground: 0 0% 100%;
+    --agenda-next-secondary: 214 30% 82%;
+    --shadow-agenda-next: 0 8px 24px -12px hsl(217 70% 20% / .5);
     --nexo-edge: 217 70% 20% / .12;
     --shadow-nexo-small: inset 0 1px 0 hsl(0 0% 100% / .65), 0 6px 16px -6px hsl(217 70% 20% / .35), 0 2px 4px hsl(217 70% 20% / .15);
   }
   .dark {
+    --agenda-tint: .16;
+    --agenda-pill-lightness: 78%;
     --nexo-edge: 222 100% 74% / .18;
     --shadow-nexo-small: inset 0 1px 0 hsl(222 100% 74% / .12), 0 4px 12px -6px hsl(226 65% 7% / .3), 0 1px 3px hsl(226 65% 7% / .2);
     --background: 226 65% 7%;
@@ -165,12 +182,6 @@
     background: hsl(var(--badge-status) / 0.12);
     border-color: hsl(var(--badge-status) / 0.35);
   }
-  .agenda-arrived { --arrival-color: var(--status-arrived); }
-  .agenda-late { --arrival-color: var(--status-late); }
-  .agenda-missed { --arrival-color: var(--status-missed); }
-  tr[class*="agenda-"] { background: hsl(var(--arrival-color) / 0.06); }
-  .dark tr[class*="agenda-"] { background: hsl(var(--arrival-color) / 0.09); }
-  tr[class*="agenda-"] > td:first-child { box-shadow: inset 3px 0 hsl(var(--arrival-color)); }
   .header-institutional {
     background: hsl(var(--header));
     border-bottom: 1px solid hsl(var(--silver) / 0.2);
@@ -252,7 +263,7 @@
 .sidebar-mini a[href="/profile"] { justify-content: center; }
 .sidebar-mini a[href="/profile"] > span:last-child { display: none; }
 .agenda-row > td:last-child { border-right: 1px solid hsl(var(--border)); border-radius: 0 16px 16px 0; }
-.agenda-pending { --arrival-color: var(--status-pending); }
+
 .agenda-row[data-occupied="true"] > td:nth-child(2) { white-space: normal; min-width: 110px; }
 .agenda-row[data-occupied="false"] > td { border-top-style: dashed; border-bottom-style: dashed; padding-top: 7px; padding-bottom: 7px; }
 @media (max-width: 1199px) and (min-width: 1024px) {
@@ -302,4 +313,43 @@
     .report-workspace-grid[data-panel-open="auto"] .panel-show-icon { display: none; }
     .previous-studies-panel { position: sticky; top: 20px; }
   }
+}
+
+/* Agenda-specific saturation preserves status styles elsewhere. */
+.agenda-arrived { --arrival-color: var(--status-arrived-strong); }
+.agenda-late { --arrival-color: var(--status-late-strong); }
+.agenda-missed { --arrival-color: var(--status-missed-strong); }
+.agenda-cancelled { --arrival-color: var(--status-cancelled-strong); }
+.agenda-pending { --arrival-color: var(--status-pending-strong); }
+.agenda-in-study { --arrival-color: var(--status-in-study-strong); }
+.agenda-reported { --arrival-color: var(--status-reported-strong); }
+.agenda-sent { --arrival-color: var(--status-sent-strong); }
+.agenda-row[data-occupied="true"] {
+  background: linear-gradient(90deg, hsl(var(--arrival-color) / var(--agenda-tint)), transparent 48%, hsl(var(--arrival-color) / var(--agenda-tint))) hsl(var(--card));
+}
+.agenda-table .status-badge-pending { --badge-status: var(--status-pending-strong); }
+.agenda-table .status-badge-in-study { --badge-status: var(--status-in-study-strong); }
+.agenda-table .status-badge-reported { --badge-status: var(--status-reported-strong); }
+.agenda-table .status-badge-sent { --badge-status: var(--status-sent-strong); }
+.agenda-table .status-badge-missed { --badge-status: var(--status-missed-strong); }
+.agenda-table .status-badge-cancelled { --badge-status: var(--status-cancelled-strong); }
+.agenda-table [class*="status-badge-"] {
+  background: hsl(var(--badge-status) / .18);
+  border-color: hsl(var(--badge-status) / .55);
+  color: hsl(from hsl(var(--badge-status)) h s var(--agenda-pill-lightness));
+}
+.agenda-table [class*="status-badge-"]::before { width: 7px; height: 7px; }
+.agenda-next { background: linear-gradient(120deg, hsl(var(--agenda-next-start)), hsl(var(--agenda-next-end))); color: hsl(var(--agenda-next-foreground)); box-shadow: var(--shadow-agenda-next); }
+.agenda-next-secondary { color: hsl(var(--agenda-next-secondary)); }
+.agenda-next-name { color: hsl(var(--agenda-next-foreground)); }
+.agenda-next-name:hover { color: hsl(var(--agenda-next-secondary)); }
+.agenda-next-arrival { background: hsl(var(--agenda-next-foreground)); color: hsl(var(--agenda-next-end)); }
+.agenda-next-arrival:hover { background: hsl(var(--agenda-next-secondary)); }
+@media (min-width: 1024px) {
+  .agenda-row[data-occupied="true"] { clip-path: inset(0 round 16px); }
+  .agenda-row[data-occupied="true"] > td:first-child { border-left: 4px solid hsl(var(--arrival-color)); }
+  .agenda-row[data-occupied="true"] > td:last-child { border-right: 4px solid hsl(var(--arrival-color)); }
+}
+@media (max-width: 1023px) {
+  .agenda-row[data-occupied="true"] { border-left: 4px solid hsl(var(--arrival-color)); border-right: 4px solid hsl(var(--arrival-color)); }
 }
